@@ -2,7 +2,14 @@
 
 {% block nav %}
 
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+<!-- <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css"> -->
+<style>
+    @media print {
+  .footer ,.back-to-top,.navbar,.items{
+    display: none;
+  }
+}
+</style>
 
 <nav class="navbar bg-light navbar-light">
     <a href="{% url 'appartment:dashboard' %}" class="navbar-brand mx-4 mb-3">
@@ -37,17 +44,19 @@
 <div class="container-fluid pt-4 px-4">
     
     <div class="bg-light text-center rounded p-4">
+        <div class="items">
         <label for=""> START DATE </label>&nbsp;
         <input type="date" id="start_date" class="'class': 'form-control'," style="width: 100x;"> &nbsp;
           <label for=""> END DATE</label>&nbsp;
             <input type="date" id="end_date" class="'class': 'form-control'," style="width: 100x;">
-            <a id="filter_btn" data-url="{% url 'appartment:cashbook' %}" class="btn btn-primary ms-2">Filter</a> {% if filter == 'all' or filter == 'range' %}  <a href="{% url 'appartment:cashbook' %}" class="btn btn-success ms-2">Today</a> {% else %} <a href="{% url 'appartment:cashbook' %}?all" class="btn btn-danger ms-2">All</a>{% endif %}
+            <a id="filter_btn" data-url="{% url 'appartment:cashbook' %}" class="btn btn-primary ms-2">Filter</a> {% if filter == 'all' or filter == 'range' %}  <a href="{% url 'appartment:cashbook' %}" class="btn btn-success ms-2">Today</a> {% else %} <a href="{% url 'appartment:cashbook' %}?all" class="btn btn-danger ms-2">All</a>{% endif %}  <a  class="btn btn-warning ms-2" onclick="window.print()">Print</a> 
             {% if filter == 'daily' %}
         <div class="d-flex float-end ">
             <a class="me-2" href="{% url 'appartment:cashbook' %}?date={{ previous_date }}"><i class="fa fa-arrow-circle-left" style="font-size:36px"></i></a>
             <a href="{% url 'appartment:cashbook' %}?date={{ next_date }}"><i class="fa fa-arrow-circle-right" style="font-size:36px"></i></a>
         </div>
         {% endif %}
+    </div>
        
         {% if filter == 'daily' %}
 

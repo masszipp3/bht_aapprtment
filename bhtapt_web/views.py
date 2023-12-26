@@ -184,7 +184,7 @@ class DashboardView(View):
 class BookingView(View):
     form_class = BookingForm
     template_name = 'bhtapt_web/booking.html'
-    success_url = reverse_lazy('appartment:list_rooms')
+    success_url = reverse_lazy('appartment:bookingslist')
     def get(self, request,room_id):
         room = Room.objects.get(id=room_id)
         if request.META.get('HTTP_X_REQUESTED_WITH') == 'XMLHttpRequest':
@@ -197,11 +197,14 @@ class BookingView(View):
     def post(self,request,room_id):
         form = self.form_class(request.POST)
         if form.is_valid():
-            form.save()
-            return redirect(self.success_url)
+            instance=form.save()
+            payments = Payment.objects.filter(booking=instance)
+            if not payments.exists():
+                return redirect('appartment:booking_reciept', booking_id=instance.id) 
+            return redirect('appartment:reciept_print', payment_id=payments.first().id) 
         else:
             action = 'Confirm Check IN' 
-            return render(request, self.template_name, {"form": form,'action':action})
+            return render(request, self.template_name, {'room':room_id,"form": form,'action':action})
 
 @method_decorator(login_required, name='dispatch')
 class advance_payment(View):
@@ -225,7 +228,7 @@ class advance_payment(View):
             )
             booking.amount_due -= Decimal(advance_amount)
             booking.save()
-        return redirect(self.success_url)           
+        return redirect('appartment:reciept_print', payment_id=payment.id)         
     
 @method_decorator(login_required, name='dispatch')
 class checkoutView(View):
@@ -234,9 +237,12 @@ class checkoutView(View):
     def get(self, request,room_id):
         booking = Booking.objects.filter(room_id=room_id,status='2').last()
         total_amount = Payment.objects.filter(booking=booking).aggregate(total=Sum('amount'))['total']
+        print(total_amount)
+        if total_amount is None:
+            total_amount = 0
         # floors = Floor.objects.prefetch_related('room_set').all().order_by('floor_no')
         bill_no = Payment.objects.count() + 1
-        return render(request, self.template_name,{'booking':booking,'advance':round(total_amount,2),'bill_no':bill_no}) 
+        return render(request, self.template_name,{'booking':booking,'advance':round(total_amount,3),'bill_no':bill_no}) 
 
     def post(self,request,room_id):
         instance = Booking.objects.filter(room_id=room_id,status='2').last()
@@ -251,7 +257,7 @@ class checkoutView(View):
                 instance.total_amount = request.POST.get('total_amount')
                 instance.duration = request.POST.get('duration')
                 instance.amount_due=0
-                instance.status = "3"  
+                instance.status = "3"
                 payment = Payment.objects.create(
                 booking=instance,
                 amount=checkout_amount, 
@@ -261,12 +267,10 @@ class checkoutView(View):
                 instance.save()
                 instance.room.room_status='1'
                 instance.room.save()
-                
                 return redirect('appartment:reciept_print', payment_id=payment.id)
         else:
              return render(request, self.template_name,{'booking':instance,'advance':round(total_amount,2),'bill_no':bill_no})  
    
-            
 
  #---------------------------------------------------------------------------
     
@@ -276,7 +280,7 @@ class checkoutView(View):
 class bookingsList(View):
     template_name = 'bhtapt_web/booking_list.html'
     def get(self, request):
-        room_id = request.POST.get('room_id',None)
+        room_id = request.GET.get('room_id',None)
         if room_id:
             booking_list = Booking.objects.filter(room_id=room_id,soft_delete=False).order_by('-id') 
         else:    
@@ -298,7 +302,7 @@ class bookingdetail(View):
 class BookingEdit(View):
     form_class = BookingForm
     template_name = 'bhtapt_web/booking.html'
-    success_url = reverse_lazy('appartment:booking_list')
+    success_url = reverse_lazy('appartment:bookingslist')
     def get(self, request,booking_id):
         booking= Booking.objects.get(id=booking_id)
         room = Room.objects.get(id=booking.room.id)
@@ -381,8 +385,20 @@ class reciept_print(View,LoginRequiredMixin):
     template_name = 'bhtapt_web/payment_reciept.html'
     success_url = reverse_lazy('appartment:list_rooms')
     def get(self, request,booking_id=None,payment_id=None):
-        payment =Payment.objects.get(id=payment_id)
+        if payment_id is not None:
+            payment =Payment.objects.get(id=payment_id)
+        if booking_id is not None:
+            booking=Booking.objects.get(id=booking_id)
+            total_advance = Payment.objects.filter(booking=booking,narration__in=['Advance Payment','Additional Payment']).aggregate(total=Sum('amount'))['total']
+            total_amountpaid = Payment.objects.filter(booking=booking).aggregate(total=Sum('amount'))['total'] 
+            if total_amountpaid is None:
+                total_amountpaid=0
+            if total_advance is None:
+                total_advance=0
+            return render(request, 'bhtapt_web/guestreciept.html',{'booking':booking,'amount_paid':total_amountpaid,'advance':total_advance})     
         total_advance = Payment.objects.filter(booking=payment.booking,narration__in=['Advance Payment','Additional Payment']).aggregate(total=Sum('amount'))['total']
+        if total_advance is None:
+            total_advance=0
         return render(request, self.template_name,{'payment':payment,'advance':total_advance})     
     
 

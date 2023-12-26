@@ -35,8 +35,8 @@
 <div class="container-fluid pt-4 px-4">
     <div class="bg-light text-center rounded p-4">
         <div class="d-flex align-items-center justify-content-between mb-4">
-            <h6 class="mb-0">Rooms</h6>
-            <a class="btn btn-sm btn-success p-2" href="{% url 'appartment:add_room' %}">Add Room</a>
+            <h6 class="mb-0">Reciepts</h6>
+            <!-- <a class="btn btn-sm btn-success p-2" href="{% url 'appartment:add_room' %}">Add Room</a> -->
         </div>
         <div class="table-responsive">
             <table class="table text-start align-middle table-bordered table-hover mb-0" style="text-align: center;">
@@ -72,18 +72,18 @@
             </table>
         </div>
     </div>
-</div>
+</div><br>
 <div class="btn-group float-end me-5" >
     {% if page_obj.has_previous %}
-        <a class="btn btn-info" href="?page={{ page_obj.previous_page_number }}">previous</a>
+        <a class="" href="?page={{ page_obj.previous_page_number }}"><i class="fa fa-arrow-circle-left" style="font-size: 35px;"></i></a>
     {% endif %}
 
-    <span class="text-danger">{{ page_obj.number }}</span>
+    <!-- <span class="text-danger ms-2 me-2" style="font-size: 18px;"> {{ page_obj.number }}</span> -->
 
     {% if page_obj.has_next %}
-        <a class="btn btn-info" href="?page={{ page_obj.next_page_number }}">next</a>
+        <a class="" href="?page={{ page_obj.next_page_number }}"><i class="fa fa-arrow-circle-right" style="font-size: 35px;"></i></a>
     {% endif %}
-</div>
+</div>  <br>
 
 
 

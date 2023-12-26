@@ -59,7 +59,7 @@ class RoomForm(forms.ModelForm):
 class BookingForm(forms.ModelForm):
     class Meta:
         model = Booking
-        fields = ['customer_name', 'room','booking_type', 'check_in_date', 'expected_checkout_date', 'rate', 'duration', 'advance_payment','country','address','mobile','id_proof','id_no','discount','total_amount']
+        fields = ['customer_name', 'room','booking_type', 'check_in_date', 'expected_checkout_date', 'rate', 'duration', 'advance_payment','country','address','mobile','id_proof','id_no','total_amount']
         
         widgets = {
             'customer_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Customer Name', 'required': True}),
@@ -73,7 +73,7 @@ class BookingForm(forms.ModelForm):
             'country': forms.TextInput(attrs={'class': 'form-control'}),
             'id_proof': forms.Select(attrs={'class': 'form-select mb-3'}),
             'id_no': forms.TextInput(attrs={'class': 'form-control'}),
-            'discount': forms.NumberInput(attrs={'class': 'form-control'}),
+            # 'discount': forms.NumberInput(attrs={'class': 'form-control'}),
             'mobile': forms.NumberInput(attrs={'class': 'form-control','required':True}),
             'address': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Address'}),
             'room': forms.HiddenInput()

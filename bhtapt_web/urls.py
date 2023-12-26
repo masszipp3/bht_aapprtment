@@ -45,6 +45,8 @@ urlpatterns=[
     path('reciept/<int:payment_id>/edit',RecieptEdit.as_view(),name='reciept_edit'),
     path('reciept/<int:payment_id>/delete',RecieptDeleteView.as_view(),name='reciept_delete'),
     path('reciept/<int:payment_id>/print',reciept_print.as_view(),name='reciept_print'),
+    path('booking/<int:booking_id>/print',reciept_print.as_view(),name='booking_reciept'),
+
 
 #------------------------------Cash Book / Room Filter ---------------------------- 
 

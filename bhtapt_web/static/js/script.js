@@ -82,12 +82,9 @@ function convertDate(inputDateTime) {
     var parts = inputDateTime.split(", ");
     var dateParts = parts[0].split(" ");
     var timePart = parts[2];
-    console.log(parts)
     var year = parts[1];
     var month = months[dateParts[0].substring(0, 3)];
     var day = dateParts[1];
-
-    console.log(year,month,day)
 
     // Ensure day is two digits
     day = day.length === 1 ? '0' + day : day;
@@ -96,7 +93,6 @@ function convertDate(inputDateTime) {
     var timeSplit = timePart.split(" ");
     var time = timeSplit[0];
     var ampm = timeSplit[1];
-    console.log(timeSplit,ampm)
 
     if (ampm) {
         ampm = ampm.toUpperCase();
@@ -107,7 +103,8 @@ function convertDate(inputDateTime) {
             ampm = 'AM';
         }
 
-        var [hours, minutes,seconds] = time.split(':');
+        // Handle time format variations
+        var [hours, minutes = '00', seconds = '00'] = time.split(':');
         hours = parseInt(hours, 10);
 
         // Convert to 24-hour format if needed
@@ -123,7 +120,7 @@ function convertDate(inputDateTime) {
         seconds = ('0' + seconds).slice(-2);
 
         // Combine into new format
-        return year + '-' + month + '-' + day + 'T' + hours + ':' + minutes;
+        return year + '-' + month + '-' + day + 'T' + hours + ':' + minutes + ':' + seconds;
     }
 
     return 'Invalid Date Time Format';
@@ -250,12 +247,8 @@ $(document).ready(function(){
     }
 
     var expected_date = convertDate($('#id_expcheck_out_dates').val())
-    if (get_date()>expected_date){
+    
         $('#id_check_out_dates').val(get_date())
-    }
-    else{
-        $('#id_check_out_dates').val(expected_date)
-    }
 
     // console.log( $('#id_check_in_date').val(get_date()),'qq')
     // $('#id_check_out_dates').val(get_date(duration,null,'1'));

@@ -114,7 +114,7 @@ class Booking(models.Model):
     check_in_date = models.DateTimeField()
     expected_checkout_date = models.DateTimeField(null=True)
     check_out_date = models.DateTimeField(null=True, blank=True)
-    rate = models.DecimalField(max_digits=10, decimal_places=2)
+    rate = models.DecimalField(max_digits=10, decimal_places=3)
     duration = models.IntegerField(null=True,default=1)
     advance_payment = models.DecimalField(max_digits=10, decimal_places=3,default=0.000)
     total_amount = models.DecimalField(max_digits=10, decimal_places=3,default=0.000)
@@ -126,7 +126,7 @@ class Booking(models.Model):
     id_no = models.CharField(max_length=10,null=True,blank=True)
     # passport = models.CharField(max_length=40 ,null=True,blank=True)
     status = models.CharField(max_length=50,null=True,blank=True,default='2',choices=booking_status)    
-    discount = models.DecimalField(max_digits=10, decimal_places=2,default=0.00)
+    discount = models.DecimalField(max_digits=10, decimal_places=3,default=0.000)
     created_at = models.DateTimeField(auto_now_add=True,null=True)
     updated_at = models.DateTimeField(auto_now=True,null=True)
     soft_delete = models.BooleanField(default=False)
@@ -171,7 +171,7 @@ class Account(models.Model):
 
     name = models.CharField(max_length=100)
     account_type = models.CharField(max_length=50, choices=ACCOUNT_TYPES,null=True)
-    balance = models.DecimalField(max_digits=20, decimal_places=2, default=0.00)
+    balance = models.DecimalField(max_digits=20, decimal_places=3, default=0.000)
 
     def __str__(self):
         return f"{self.name} ({self.get_account_type_display()})"
