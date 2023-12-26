@@ -184,6 +184,13 @@
 
 
 </style>
+
+{% if not floors %}
+<div class="col-12 mb-3 m-5">
+  <div class="alert alert-danger">No floors Found</div>
+  
+</div> 
+{% endif %}
 <div class="container-fluid pt-4 px-4">
     {% for floor in floors %}
   <h2 class="text-center text-dark m-4" style="font-family: monospace;">

@@ -206,7 +206,7 @@ class BookingView(View):
 @method_decorator(login_required, name='dispatch')
 class advance_payment(View):
     template_name = 'bhtapt_web/advance_payment.html'
-    success_url = reverse_lazy('appartment:list_rooms')
+    success_url = reverse_lazy('appartment:dashboard')
     def get(self, request,room_id):
         booking = Booking.objects.filter(room_id=room_id,status='2').last()
         # floors = Floor.objects.prefetch_related('room_set').all().order_by('floor_no')
@@ -261,7 +261,8 @@ class checkoutView(View):
                 instance.save()
                 instance.room.room_status='1'
                 instance.room.save()
-                return redirect(self.success_url)
+                
+                return redirect('appartment:reciept_print', payment_id=payment.id)
         else:
              return render(request, self.template_name,{'booking':instance,'advance':round(total_amount,2),'bill_no':bill_no})  
    
@@ -297,7 +298,7 @@ class bookingdetail(View):
 class BookingEdit(View):
     form_class = BookingForm
     template_name = 'bhtapt_web/booking.html'
-    success_url = reverse_lazy('appartment:list_rooms')
+    success_url = reverse_lazy('appartment:booking_list')
     def get(self, request,booking_id):
         booking= Booking.objects.get(id=booking_id)
         room = Room.objects.get(id=booking.room.id)
@@ -341,7 +342,7 @@ class BookingDeleteView(View):
 class RecieptEdit(View):
     form_class = BookingForm
     template_name = 'bhtapt_web/edit_payment.html'
-    success_url = reverse_lazy('appartment:list_rooms')
+    success_url = reverse_lazy('appartment:dashboard')
     def get(self, request,payment_id):
         reciept= Payment.objects.get(id=payment_id)
         action=reciept.narration
@@ -374,7 +375,7 @@ class RecieptDeleteView(View):
         reciept = get_object_or_404(Payment, id=payment_id) 
         update_account(reciept)
         reciept.delete()
-        return redirect(reverse_lazy('appartment:bookingslist'))  
+        return redirect(reverse_lazy('appartment:cashreciept_list'))  
 
 class reciept_print(View,LoginRequiredMixin):
     template_name = 'bhtapt_web/payment_reciept.html'

@@ -195,7 +195,7 @@ class Transaction(models.Model):
     account = models.ForeignKey(Account, on_delete=models.CASCADE, related_name='transactions_account')
     date = models.DateField()
     transaction_type = models.CharField(max_length=6, choices=TRANSACTION_TYPES)
-    transaction_remark = models.CharField(max_length=15, null=True, blank=True)
+    transaction_remark = models.CharField(max_length=40, null=True, blank=True)
     amount = models.DecimalField(max_digits=10, decimal_places=3)
     description = models.CharField(max_length=200, null=True, blank=True)
     booking = models.ForeignKey(Booking, on_delete=models.CASCADE, null=True, blank=True, related_name='transactions_bpoking')
