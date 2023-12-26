@@ -1,0 +1,370 @@
+{% extends 'bhtapt_web/index.html' %}
+{% load custom_filters %}
+
+{% load static %}
+
+
+{% block head %}
+<link rel="stylesheet" href="{% static 'css/reciept_tyle.css' %}
+    <link rel=" stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/meyer-reset/2.0/reset.min.css">
+<link href="{% static 'css/bootstrap/css/bootstrap.min.css' %}" rel="stylesheet">
+{% endblock %}
+
+{% block nav %}
+
+<nav class="navbar bg-light navbar-light">
+  <a href="{% url 'appartment:dashboard' %}" class="navbar-brand mx-4 mb-3">
+      <h3 class="text-primary"><i class="fa fa-hashtag me-2"></i>Bin Hariz</h3>
+  </a>
+  <div class="d-flex align-items-center ms-4 mb-4">
+      <div class="position-relative">
+         
+      </div>
+      <div class="ms-3">
+          <h6 class="mb-0">{{request.user}}</h6>
+          <span>Admin</span>
+      </div>
+  </div>
+  <div class="navbar-nav w-100">
+      <a href="{% url 'appartment:dashboard' %}" class="nav-item nav-link "><i
+              class="fa fa-tachometer-alt me-2"></i>Dashboard</a>
+      <a href="{% url 'appartment:list_rooms' %}" class="nav-item nav-link"><i class="fa fa-th me-2"></i>Rooms</a>
+      <a href="{% url 'appartment:list_floors' %}" class="nav-item nav-link "><i class="fa fa-keyboard me-2"></i>Floors</a>
+      <a href="{% url 'appartment:list_category' %}" class="nav-item nav-link "><i class="fa fa-table me-2"></i>Categories</a>
+      <a href="{% url 'appartment:cashbook' %}" class="nav-item nav-link "><i class="fa fa-archive me-2"></i>Cash Book</a>
+      <a href="{% url 'appartment:bookingslist' %}" class="nav-item nav-link "><i class="fa fa-chart-bar me-2"></i>Bookings</a>
+      <a href="{% url 'appartment:cashreciept_list' %}" class="nav-item nav-link active"><i class="fa fa-receipt me-2"></i>Cash Reciepts</a>
+      <!-- <a href="chart.html" class="nav-item nav-link"><i class="fa fa-chart-bar me-2"></i>Cash Payments</a> -->
+
+
+  </div>
+</nav>
+{% endblock %}
+
+</div>
+<!-- Sidebar End -->
+<!-- Navbar End -->
+
+
+{% block content %}
+<style>
+@media print {
+  body {
+    font-size: 10px;
+  }
+}
+@media print {
+  .page-break {
+    page-break-before: avoid;
+    page-break-after: avoid;
+  }
+}
+
+@media print {
+  .footer ,.back-to-top,.print{
+    display: none;
+  }
+}
+
+</style>
+<div class="d-flex justify-content-end" >
+  <button class="btn btn-primary p-3 print" style="width: 80px;" onclick="window.print()">Print</button>
+
+</div>
+
+<!-- Sale & Revenue Start -->
+<div class="container-fluid pt-4 px-4">
+  <main class="cd__main" >
+    <!-- Start DEMO HTML (Use the following code into your project)-->
+    <div class="container invoice" id="invoice" style="width: 100%;">
+      <div class="invoice-header">
+        <div class="row">
+          <div class="col-xs-8">
+            <h1>Cash Reciept <small></small></h1>
+            <h4 class="text-muted">ENTRY No: {{payment.booking.id}} | Date: {{payment.payment_date}}</h4>
+            <h4 class="text-muted">BILL No : {{payment.id}} </h4>
+
+          </div>
+          <div class="col-xs-4">
+            <div class="media">
+              <div class="media-left">
+                <img class="media-object logo" src="{% static 'img/logo.jpg' %}" height="80px" width="80px" />
+              </div>
+              <ul class="media-body list-unstyled">
+                <li><strong>BIN HARIZ FURNISHED FLATS</strong></li>
+                <li>Aqwad, Salalah,Sultaanate of Oman P.O BOX:480,PC 217</li>
+                <li>+968 90944000, 90911000</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="invoice-body">
+        <div class="row">
+          <div class="col-xs-5">
+            <div class="panel panel-default" style="width: 80%;">
+              <div class="panel-heading">
+                <h3 class="panel-title">Appartment Details</h3>
+              </div>
+              <div class="panel-body">
+                <dl class="dl-horizontal">
+                  
+                  <p><strong>BIN HARIZ FURNISHED FLATS</strong></p>
+                  <!-- <dt>Industry</dt>
+                  <dd>Software Development</dd> -->
+                  
+                  <p>Aqwad, Salalah,Sultaanate of Oman <br> P.O BOX:480,PC 217
+                     
+                  </p>
+                  <p>+968 90944000, 90911000</p>
+                  <!-- <dt>Email</dt>
+                  <dd>mainl@acme.com</dd> -->
+                  <!-- <dt>Tax NO</dt>
+                  <dd class="mono">123456789</dd>
+                  <dt>Tax Office</dt>
+                  <dd>A' Moon</dd> -->
+                </dl>
+              </div>
+            </div>
+          </div>
+          <div class="col-xs-7">
+            <div class="panel panel-default">
+              <div class="panel-heading">
+                <h3 class="panel-title">Customer Details</h3>
+              </div>
+              <div class="panel-body">
+                <dl class="dl-horizontal">
+                  <dt>Name</dt>
+                  <dd>{{payment.booking.customer_name}}</dd>
+                  <dt>Room No</dt>
+                  <dd>{{payment.booking.room.room_number}}</dd>
+                  <dt>Address</dt>
+                  <dd>{{payment.booking.address}}</dd>
+                  <dt>Phone</dt>
+                  <dd>{{payment.booking.mobile}}</dd>
+                  <dt>Date Of Arrival </dt>
+                  <dd>{{payment.booking.check_in_date}}</dd>
+                  <dt>Duration </dt>
+                  <dd>{{payment.booking.duration}}</dd>
+                  <dt>Booking Type</dt>
+                  <dd class="mono">{{payment.booking.get_booking_type_display}}</dd>
+                  <dt>Date Of Depature </dt>
+                  <dd>{{payment.booking.check_out_date}}</dd>
+                  <!-- <dd>&nbsp;</dd> -->
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="panel panel-default">
+          <div class="panel-heading">
+            <h3 class="panel-title" style="font-size: medium;">Services / Products</h3>
+          </div>
+
+          {% if payment.narration == 'Additional Payment' or payment.narration == 'Advance Payment' %}
+
+
+          <table class="table table-bordered table-condensed">
+            <thead>
+              <tr>
+                <th>SL/no</th>
+                <th>Room</th>
+                <th class="text-center colfix">Description</th>
+                <!-- <th class="text-center colfix">Unit</th> -->
+                <th class="text-center colfix">Unit</th>
+                <th class="text-center colfix">Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>
+                  1
+                </td>
+                <td>
+                  {{payment.booking.room.room_number}}
+                </td>
+                
+                <td class="text-center">
+                  <span class="mono">{{payment.narration}}</span>
+            
+                </td>
+               
+    
+                <td class="text-right">
+                  <span class="mono"> 1</span>
+                
+                </td>
+                <td class="text-right">
+                  <span class="mono">{{payment.amount}}</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="panel panel-default">
+          <table class="table table-bordered table-condensed">
+            <thead>
+              <tr>
+                <td class="text-center col-xs-1">Sub Total</td>
+                <td class="text-center col-xs-1">Discount</td>
+                <td class="text-center col-xs-1">Total</td>
+                <!-- <td class="text-center col-xs-1">Advance</td> -->
+                <td class="text-center col-xs-1">Advance Amount </td>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th class="text-center rowtotal mono">{{payment.booking.duration|mul:payment.booking.rate}}</th>
+                <th class="text-center rowtotal mono">- {{payment.booking.discount}}</th>
+                <th class="text-center rowtotal mono">{{payment.booking.total_amount}}</th>
+                <!-- <th class="text-center rowtotal mono">{{advance}}</th> -->
+                <th class="text-center rowtotal mono" style="font-weight: 800;">OMR {{payment.amount}}</th>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+          {% else %}
+
+
+          <table class="table table-bordered table-condensed">
+            <thead>
+              <tr>
+                <th>SL/no</th>
+                <th>Room</th>
+                <th class="text-center colfix">Description</th>
+                <th class="text-center colfix">Unit</th>
+                <th class="text-center colfix">Rate</th>
+                <th class="text-center colfix">Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>
+                  1
+                </td>
+                <td>
+                  {{payment.booking.room.room_number}}
+                </td>
+                
+                <td class="text-center">
+                  <span class="mono">Room Rent</span>
+            
+                </td>
+               
+                <td class="text-right">
+                  <span class="mono">{{payment.booking.duration}}</span>
+                </td>
+                <td class="text-right">
+                  <span class="mono"> {{payment.booking.rate}}</span>
+                
+                </td>
+                <td class="text-right">
+                  <span class="mono">{{payment.booking.duration|mul:payment.booking.rate}}</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="panel panel-default">
+          <table class="table table-bordered table-condensed">
+            <thead>
+              <tr>
+                <td class="text-center col-xs-1">Sub Total</td>
+                <td class="text-center col-xs-1">Discount</td>
+                <td class="text-center col-xs-1">Total</td>
+                <td class="text-center col-xs-1">Advance</td>
+                <td class="text-center col-xs-1">Final</td>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th class="text-center rowtotal mono">{{payment.booking.duration|mul:payment.booking.rate}}</th>
+                <th class="text-center rowtotal mono">- {{payment.booking.discount}}</th>
+                <th class="text-center rowtotal mono">{{payment.booking.total_amount}}</th>
+                <th class="text-center rowtotal mono">{{advance}}</th>
+                <th class="text-center rowtotal mono" style="font-weight: 800;">OMR {{payment.booking.total_amount|sub:advance}}</th>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+          {% endif %}
+        
+        <div class="row">
+          <div class="col-xs-7" style="height: 80px;">
+            <div class="panel panel-default">
+              <div class="panel-body" style="height:80px;">
+                <i>Comments / Notes</i>
+                <hr style="margin:3px 0 5px" /> 
+
+              </div>
+            </div>
+          </div>
+          <div class="col-xs-5" >
+            <div class="panel panel-default" style="height: 100px;">
+              <div class="panel-heading">
+                <h3 class="panel-title">Payment Method</h3>
+              </div>
+              <div class="panel-body" style="height: 100px !important;">
+                <h6 style="text-align: center; font-size: medium; font-weight: 900;">CASH</h6>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+      <div class="invoice-footer">
+        Thank you for choosing our services.,We hope to see you again soon.
+        <strong>~Bin Hariz Flats~</strong>
+      </div>
+    </div>
+    <!-- END EDMO HTML (Happy Coding!)-->
+  </main>
+
+
+</div>
+
+<script>
+  function printinvoice(){
+    $('.navbar').hide()
+
+    window.print()
+  }
+</script>
+
+<!-- Widgets End -->
+{% endblock %}
+
+{% block bodyend %}
+
+<script src="{% static 'js/jspdf.debug.js' %}"></script>
+<script src="{% static 'js/html2canvas.min.js' %}"></script>
+<script src="{% static 'js/html2pdf.min.js' %}"></script>
+
+{% endblock %}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

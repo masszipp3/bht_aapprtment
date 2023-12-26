@@ -1,0 +1,386 @@
+{% extends 'bhtapt_web/index.html' %}
+
+{% block nav %}
+<nav class="navbar bg-light navbar-light">
+    <a href="{% url 'appartment:dashboard' %}" class="navbar-brand mx-4 mb-3">
+        <h3 class="text-primary"><i class="fa fa-hashtag me-2"></i>Bin Hariz</h3>
+    </a>
+    <div class="d-flex align-items-center ms-4 mb-4">
+        <div class="position-relative">
+           
+        </div>
+        <div class="ms-3">
+            <h6 class="mb-0">{{request.user}}</h6>
+            <span>Admin</span>
+        </div>
+    </div>
+    <div class="navbar-nav w-100">
+        <a href="{% url 'appartment:dashboard' %}" class="nav-item nav-link active"><i
+                class="fa fa-tachometer-alt me-2"></i>Dashboard</a>
+        <a href="{% url 'appartment:list_rooms' %}" class="nav-item nav-link"><i class="fa fa-th me-2"></i>Rooms</a>
+        <a href="{% url 'appartment:list_floors' %}" class="nav-item nav-link "><i class="fa fa-keyboard me-2"></i>Floors</a>
+        <a href="{% url 'appartment:list_category' %}" class="nav-item nav-link "><i class="fa fa-table me-2"></i>Categories</a>
+        <a href="{% url 'appartment:cashbook' %}" class="nav-item nav-link "><i class="fa fa-archive me-2"></i>Cash Book</a>
+        <a href="{% url 'appartment:bookingslist' %}" class="nav-item nav-link "><i class="fa fa-chart-bar me-2"></i>Bookings</a>
+        <a href="{% url 'appartment:cashreciept_list' %}" class="nav-item nav-link"><i class="fa fa-receipt me-2"></i>Cash Reciepts</a>
+        <!-- <a href="chart.html" class="nav-item nav-link"><i class="fa fa-chart-bar me-2"></i>Cash Payments</a> -->
+  
+  
+    </div>
+  </nav>
+{% endblock %}
+
+{% block content %}
+<style>
+    .boxes {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        /* padding: 5%; */
+        /* background-color: rgb(168, 0, 0);
+        background-color: rgb(9, 150, 103);
+        background-color: rgb(224, 167, 9); */
+        height: 120px;
+        width: 100%;
+        /* box-shadow: rgba(0, 0, 0, 0.35) 0px 5px 15px; */
+        box-shadow: rgb(38, 57, 77) 0px 20px 30px -10px;
+        /* box-shadow: rgba(240, 46, 170, 0.4) 5px 5px, rgba(240, 46, 170, 0.3) 10px 10px, rgba(240, 46, 170, 0.2) 15px 15px, rgba(240, 46, 170, 0.1) 20px 20px, rgba(240, 46, 170, 0.05) 25px 25px; */
+        border-radius: 15px;
+        /* box-shadow: rgba(50, 50, 93, 0.25) 0px 50px 100px -20px, rgba(0, 0, 0, 0.3) 0px 30px 60px -30px; */
+    }
+
+    .boxred {
+        background-color: rgb(168, 0, 0);
+        background: linear-gradient(to top, rgb(168, 0, 0), #3a3637);
+
+    }
+
+    .boxgreen {
+        background-color: rgb(9, 150, 103);
+        background: linear-gradient(to top, rgb(9, 150, 103), #3a3637);
+
+    }
+
+    .boxyellow {
+        background-color: rgb(241, 137, 0);
+        background: linear-gradient(to top, rgb(241, 137, 0), #3a3637);
+
+    }
+
+    .boxes h6 {
+        color: white;
+        text-shadow: 2px 2px rgba(0, 0, 0, 0.493);
+
+    }
+
+    .boxes:hover {
+        /* box-shadow: rgba(240, 46, 170, 0.4) 5px 5px, rgba(240, 46, 170, 0.3) 10px 10px, rgba(240, 46, 170, 0.2) 15px 15px, rgba(240, 46, 170, 0.1) 20px 20px, rgba(240, 46, 170, 0.05) 25px 25px; */
+        box-shadow: rgba(240, 46, 170, 0.4) 0px 5px, rgba(240, 46, 170, 0.3) 0px 10px, rgba(240, 46, 170, 0.2) 0px 15px, rgba(240, 46, 170, 0.1) 0px 20px, rgba(240, 46, 170, 0.05) 0px 25px;
+    }
+
+    /* .cards {
+  position: relative;
+  width: 220px;
+  height: 320px;
+  background-color: rgb(168, 0, 0);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 25px;
+  font-weight: bold;
+  border-radius: 15px;
+  cursor: pointer;
+}
+
+.cards::before,
+.cards::after {
+  position: absolute;
+  content: "";
+  width: 20%;
+  height: 20%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 25px;
+  font-weight: bold;
+  background-color: rgb(6, 21, 50);
+  transition: all 0.5s;
+}
+
+.cards::before {
+  top: 0;
+  right: 0;
+  border-radius: 0 15px 0 100%;
+}
+
+.cards::after {
+  bottom: 0;
+  left: 0;
+  border-radius: 0 100%  0 15px;
+}
+
+.cards:hover::before,
+.cards:hover:after {
+  width: 100%;
+  height: 100%;
+  border-radius: 15px;
+  transition: all 0.5s;
+}
+
+.cards:hover:after {
+  content: "HELLO";
+} */
+
+    .card {
+        max-width: 100%;
+        background-color: rgb(7 16 45);
+        background: linear-gradient(to top right, rgb(7 16 45), rgb(58 60 84));
+        background: -webkit-linear-gradient(to top right, rgb(7 16 45), rgb(58 60 84));
+        display: flex;
+        flex-direction: column;
+        padding: 20px;
+        border-radius: 20px;
+        width: 100%;
+        border: 1px solid rgb(84 90 106);
+        margin-bottom: 3%;
+    }
+
+    .small-text,
+    .title,
+    .desc {
+        font-weight: 600;
+    }
+
+    .title,
+    .desc {
+        margin: 8px 0;
+    }
+
+    .small-text {
+        color: #488aec;
+        font-size: 14px;
+    }
+
+    .title {
+        color: #fff;
+        font-size: 26px;
+        line-height: 26px;
+    }
+
+    .desc {
+        color: rgb(151 153 167);
+        font-size: 13px;
+    }
+
+    .buttons {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        margin-top: 10px;
+    }
+
+    .button {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        border-radius: 10px;
+        padding: 6px;
+        text-decoration: none;
+    }
+
+    .button:first-child {
+        box-shadow: 0 4px 6px -1px #488aec31, 0 2px 4px -1px #488aec17;
+        background-color: #488aec;
+    }
+
+    .button:last-child {
+        box-shadow: 0 4px 6px -1px #0b162531, 0 2px 4px -1px #0e192b17;
+        background-color: #fff;
+    }
+
+    .icon {
+        height: 25px;
+        width: 25px;
+    }
+
+    .icon svg {
+        width: 100%;
+        height: 100%;
+    }
+
+    .icon svg:last-child {
+        fill: #000
+    }
+
+    .button-text {
+        display: flex;
+        flex-direction: column;
+        margin-left: 8px;
+    }
+
+    .button-text span:first-child {
+        font-size: 12px;
+        font-weight: 600;
+    }
+
+    .google span:first-child {
+        color: rgb(219 206 253);
+    }
+
+    .apple span:first-child {
+        color: rgb(81 87 108);
+    }
+
+    .google span:last-child {
+        color: #fff;
+        font-weight: 800;
+    }
+
+    .apple span:last-child {
+        color: #000;
+        font-weight: 800;
+    }
+</style>
+<div class="container-fluid pt-4 px-4">
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="row">
+                    <div class="col-6">
+                        <span class="small-text">CHECKIN DATE : </span><span class="small-text text-danger ms-2 "
+                            id="check_in">{{booking.check_in_date}}</span>
+
+                    </div>
+                    <div class="col-6">
+                        <span class="small-text">ENTRY NO : </span> <span class="small-text text-danger ms-2 "
+                        >{{booking.id}}</span>
+                    </div>
+                    <div class="col-6">
+                        <span class="small-text">CUSTOMER NAME</span> <span class="small-text text-danger ms-2 "
+                        >{{booking.customer_name}}</span>
+                    </div>
+                    <div class="col-6">
+                        <span class="small-text">BILL NO</span>
+                        <span class="small-text text-danger ms-2 "
+                        >{{bill_no}}</span>
+                    </div>
+                </div>
+
+                <!-- <span class="title">Download our mobile application.</span>
+            <span class="desc">Download Lorem mobile banking app for IOS &amp; Android to manage your online money.</span> -->
+            </div>
+        </div>
+        <form method="post">
+            <div class="row">
+
+                {% csrf_token %}
+                <div class="mb-3 col-4">
+                    <label for="exampleInputEmail1" class="form-label">Check IN Date </label>
+                    <input type="datetime-local" required name="check_in_date" readonly class="form-control"
+                        id="id_check_in_dates" value="" aria-describedby="emailHelp">
+                    <!-- <div id="emailHelp" class="form-text">We'll never share your email with anyone else.
+                            </div> -->
+                    <input type="hidden"  name="check_in_date" value="{{booking.expected_checkout_date}}" id="id_check_outt_date">             
+                </div>
+
+
+                <div class="mb-3 col-4">
+                    <label for="exampleInputPassword1" class="form-label"> Type</label>
+                    <input type="text" required name="booking_type" readonly
+                        value="{{booking.get_booking_type_display}}" class="form-control" id="id_booking_types">
+                </div>
+
+                <div class="mb-3 col-4">
+                    <label for="exampleInputPassword1" class="form-label">Check Out Date</label>
+                    <input type="datetime-local" required name="check_out_date" value="" class="form-control"
+                        id="id_check_out_dates">
+                        <input type="hidden" required name="" value="{{booking.expected_checkout_date}}" class="form-control"
+                        id="id_expcheck_out_dates">
+                </div>
+
+                <div class="mb-3 col-3">
+                    <label for="exampleInputPassword1" class="form-label">Rate</label>
+                    <input type="number" required name="rate" value="{{booking.rate}}" class="form-control"
+                        id="id_rates">
+                </div>
+                 
+                    <input type="hidden" required name="total_amount" class="form-control"
+                        id="totalinput">
+      
+
+                    <input type="hidden" required name="checkout_anount" class="form-control"
+                        id="id_checkout_anount" >
+          
+
+                <div class="mb-3 col-3">
+                    <label for="exampleInputPassword1" class="form-label">Duration</label>
+                    <input type="number" readonly required name="duration" value="{{booking.duration}}" class="form-control"
+                        id="id_durations">
+                </div>
+
+                <!-- <div class="mb-3 col-3">
+                    <label for="exampleInputPassword1" class="form-label">Excess Days</label>
+                    <input type="number" required name="" class="form-control" id="excess_durations">
+                </div> -->
+
+                <div class="mb-3 col-3">
+                    <label for="exampleInputPassword1" class="form-label">Discount</label>
+                    <input type="number" required name="discount" value="{{booking.discount}}" class="form-control"
+                        id="id_discounts">
+                </div>
+
+                <div class="mb-3 col-12" style="display: flex; justify-content:center;">
+                    <button type="submit" class="btn btn-primary p-3 mt-4 me-5">Complete Checkout </button>
+                </div>
+                <style>
+                   tbody{
+                    text-align: center;
+                   }
+                </style>
+
+            </div>
+        </form>
+        <div class="row">
+            <div class="col-sm-7"></div>
+            <div class="col-sm-5 float-md-right">
+                <div class="bg-light rounded h-100 p-4">
+                    <h6 class="mb-4 text-center">Summary</h6>
+                    <table class="table table-dark table-bordered" style="width:100%">
+
+                        <tbody>
+                            <tr>
+                                <td >Amount</td>
+                                <td id="id_total_amount"></td>
+                            </tr>
+                            <tr>
+                                <td>Discount</td>
+                                <td id="discount">{{booking.discount}}</td>
+                            </tr>
+                            <tr>
+                                <td >Total</td>
+                                <td id="total"></td>
+                            </tr>
+                            
+                            <tr>
+                                <td >Advance</td>
+                                <td id="advance">{{advance}}</td>
+                            </tr>
+                            <tr>
+                                <th >Net Total</th>
+                                <th id="net_total"></th>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+
+
+    </div>
+
+
+
+    {% endblock %}

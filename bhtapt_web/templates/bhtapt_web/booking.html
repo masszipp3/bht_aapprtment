@@ -1,0 +1,173 @@
+{% extends 'bhtapt_web/index.html' %}
+
+{% block nav %}
+
+<nav class="navbar bg-light navbar-light">
+    <a href="{% url 'appartment:dashboard' %}" class="navbar-brand mx-4 mb-3">
+        <h3 class="text-primary"><i class="fa fa-hashtag me-2"></i>Bin Hariz</h3>
+    </a>
+    <div class="d-flex align-items-center ms-4 mb-4">
+        <div class="position-relative">
+           
+        </div>
+        <div class="ms-3">
+            <h6 class="mb-0">{{request.user}}</h6>
+            <span>Admin</span>
+        </div>
+    </div>
+    <div class="navbar-nav w-100">
+        <a href="{% url 'appartment:dashboard' %}" class="nav-item nav-link "><i
+                class="fa fa-tachometer-alt me-2"></i>Dashboard</a>
+        <a href="{% url 'appartment:list_rooms' %}" class="nav-item nav-link"><i class="fa fa-th me-2"></i>Rooms</a>
+        <a href="{% url 'appartment:list_floors' %}" class="nav-item nav-link "><i class="fa fa-keyboard me-2"></i>Floors</a>
+        <a href="{% url 'appartment:list_category' %}" class="nav-item nav-link "><i class="fa fa-table me-2"></i>Categories</a>
+        <a href="{% url 'appartment:cashbook' %}" class="nav-item nav-link"><i class="fa fa-archive me-2"></i>Cash Book</a>
+        <a href="{% url 'appartment:bookingslist' %}" class="nav-item nav-link active"><i class="fa fa-chart-bar me-2"></i>Bookings</a>
+        <a href="{% url 'appartment:cashreciept_list' %}" class="nav-item nav-link"><i class="fa fa-receipt me-2"></i>Cash Reciepts</a>
+        <!-- <a href="chart.html" class="nav-item nav-link"><i class="fa fa-chart-bar me-2"></i>Cash Payments</a> -->
+
+
+    </div>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid pt-4 px-4">
+<div class="row g-4">
+    <div class="col-sm-12 col-xl-12">
+        <div class="bg-light rounded h-100 p-4" id="prourl" data-url="">
+            <h6 class="mb-4">{{action}}</h6>
+            <p>{{form.errors.as_text}}</p>
+            <!-- <p>{{room}}</p> -->
+
+            <form method="post" enctype="multipart/form-data" id="booking_form">
+                {% csrf_token %}
+                <div class="mb-3">
+                    <label for="{{ form.room_number.id_for_label }}" class="form-label">Customer Name</label>
+                    {{ form.customer_name }}
+                </div>
+                {% if form.customer_name.errors %}
+                <div class="alert alert-danger">{{ form.customer_name.errors.as_text }}</div>
+                {% endif %}
+                <div class="mb-3">
+                    <label for="{{ form.floor.id_for_label }}" class="form-label">Booking Type</label>
+                    {{ form.booking_type }}
+                </div>
+                {% if form.booking_type.errors %}
+                <div class="alert alert-danger">{{ form.booking_type.errors.as_text }}</div>
+                {% endif %}
+
+                <div class="mb-3">
+                    <label for="{{ form.rate.id_for_label }}" class="form-label">Rate</label>
+                    {{ form.rate }}
+                </div>
+                {% if form.rate.errors %}
+                <div class="alert alert-danger">{{ form.rate.errors.as_text }}</div>
+                {% endif %}
+
+
+                <div class="mb-3">
+                    <label for="{{ form.duration.id_for_label }}" class="form-label">Duration</label>
+                    {{ form.duration }}
+                </div>
+                {% if form.duration.errors %}
+                <div class="alert alert-danger">{{ form.duration.errors.as_text }}</div>
+                {% endif %}
+
+
+                <div class="mb-3">
+                    <label for="{{ form.check_in_date.id_for_label }}" class="form-label">Check IN Date</label>
+                    {{ form.check_in_date }}
+                </div>
+                {% if form.check_in_date.errors %}
+                <div class="alert alert-danger">{{ form.check_in_date.errors.as_text }}</div>
+                {% endif %}
+
+                <div class="mb-3">
+                    <label for="{{ form.expected_checkout_date.id_for_label }}" class="form-label"> Expected Checkout</label>
+                    {{ form.expected_checkout_date }}
+                </div>
+                {% if form.expected_checkout_date.errors %}
+                <div class="alert alert-danger">{{ form.expected_checkout_date.errors.as_text }}</div>
+                {% endif %}
+
+                <div class="mb-3">
+                    <label for="{{ form.discount.id_for_label }}" class="form-label">Discount</label>
+                    {{ form.discount }}
+                </div>
+                {% if form.discount.errors %}
+                <div class="alert alert-danger">{{ form.discount.errors.as_text }}</div>
+                {% endif %}
+
+                
+                <div class="mb-3">
+                    <label for="{{ form.country.id_for_label }}" class="form-label">Country</label>
+                    {{ form.country }}
+                </div>
+                {% if form.country.errors %}
+                <div class="alert alert-danger">{{ form.country.errors.as_text }}</div>
+                {% endif %}
+
+                <div class="mb-3">
+                    <label for="{{ form.mobile.id_for_label }}" class="form-label">Mobile Number</label>
+                    {{ form.mobile }}
+                </div>
+                {% if form.mobile.errors %}
+                <div class="alert alert-danger">{{ form.mobile.errors.as_text }}</div>
+                {% endif %}
+
+                <div class="mb-3">
+                    <label for="{{ form.address.id_for_label }}" class="form-label">Address</label>
+                    {{ form.address }}
+                </div>
+                {% if form.address.errors %}
+                <div class="alert alert-danger">{{ form.address.errors.as_text }}</div>
+                {% endif %}
+    
+                
+                <div class="mb-3">
+                    <label for="{{ form.id_proof.id_for_label }}" class="form-label">ID Proof</label>
+                    {{ form.id_proof }}
+                </div>
+                {% if form.id_proof.errors %}
+                <div class="alert alert-danger">{{ form.id_proof.errors.as_text }}</div>
+                {% endif %}
+
+                <div class="mb-3">
+                    <label for="{{ form.id_no.id_for_label }}" class="form-label">ID No</label>
+                    {{ form.id_no }}
+                </div>
+                {% if form.id_no.errors %}
+                <div class="alert alert-danger">{{ form.id_no.errors.as_text }}</div>
+                {% endif %}
+
+                <input type="hidden" name="room" value="{{room}}" id="id_room">
+                <div class="mb-3">
+                    <label for="id_total_amount" class="form-label">Total Amount Payable</label>
+                    <input type="text" name="total_amount" value="{{form.total_amount.value}}" readonly id="id_total_amount" required class="form-control" >
+                </div>
+
+                {% if action == 'Edit Check IN' %}
+
+                <div class="mb-3">
+                    <label for="{{ form.advance_payment.id_for_label }}" class="form-label">Advance Amount</label>
+                    <input type="text" name="advance_payment"  value="{{form.advance_payment.value}}" readonly id="id_advance_payment" required class="form-control" >
+                </div>
+                {% else %}
+
+                <div class="mb-3">
+                    <label for="{{ form.advance_payment.id_for_label }}" class="form-label">Advance Amount</label>
+                    {{ form.advance_payment }}
+                </div>
+                {% endif %}
+                {% if form.advance_payment.errors %}
+                <div class="alert alert-danger">{{ form.advance_payment.errors.as_text }}</div>
+                {% endif %}
+                <div class="mb-3">
+                    <button type="submit" class="btn btn-primary">{{action}}</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+{% endblock %}

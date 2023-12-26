@@ -1,0 +1,277 @@
+{% extends 'bhtapt_web/index.html' %}
+
+{% block nav %}
+
+
+<nav class="navbar bg-light navbar-light">
+    <a href="{% url 'appartment:dashboard' %}" class="navbar-brand mx-4 mb-3">
+        <h3 class="text-primary"><i class="fa fa-hashtag me-2"></i>Bin Hariz</h3>
+    </a>
+    <div class="d-flex align-items-center ms-4 mb-4">
+        <div class="position-relative">
+           
+        </div>
+        <div class="ms-3">
+            <h6 class="mb-0">{{request.user}}</h6>
+            <span>Admin</span>
+        </div>
+    </div>
+    <div class="navbar-nav w-100">
+        <a href="{% url 'appartment:dashboard' %}" class="nav-item nav-link "><i
+                class="fa fa-tachometer-alt me-2"></i>Dashboard</a>
+        <a href="{% url 'appartment:list_rooms' %}" class="nav-item nav-link"><i class="fa fa-th me-2"></i>Rooms</a>
+        <a href="{% url 'appartment:list_floors' %}" class="nav-item nav-link "><i class="fa fa-keyboard me-2"></i>Floors</a>
+        <a href="{% url 'appartment:list_category' %}" class="nav-item nav-link "><i class="fa fa-table me-2"></i>Categories</a>
+        <a href="{% url 'appartment:cashbook' %}" class="nav-item nav-link"><i class="fa fa-archive me-2"></i>Cash Book</a>
+        <a href="{% url 'appartment:bookingslist' %}" class="nav-item nav-link active"><i class="fa fa-chart-bar me-2"></i>Bookings</a>
+        <a href="{% url 'appartment:cashreciept_list' %}" class="nav-item nav-link"><i class="fa fa-receipt me-2"></i>Cash Reciepts</a>
+        <!-- <a href="chart.html" class="nav-item nav-link"><i class="fa fa-chart-bar me-2"></i>Cash Payments</a> -->
+
+
+    </div>
+</nav>
+{% endblock %}
+
+{% block content %}
+<style>
+    .ordercard {
+        background-color: white;
+        padding: 2%;
+        width: 100%;
+        border-radius: 13px;
+    }
+</style>
+
+<!-- Recent Sales Start -->
+<div class="container-fluid pt-4 px-4">
+    <div class="bg-light text-center rounded p-4">
+        <div class="d-flex align-items-center justify-content-between mb-4">
+            <h6 class="mb-0">Entry ID : {{booking.id}}</h6>
+               
+        
+
+            <div>
+                <a class="btn btn-sm btn-success" href="{% url 'appartment:bookingedit' booking.id %}">Edit</a>
+                <a class="btn btn-sm btn-danger" onclick="return confirm('Are you Sure..?')" href="{% url 'appartment:bookingdelete' booking.id %}">Delete</a>
+            </div>
+        </div>
+        <style>
+            .cname{
+                font-weight: 900;
+            }
+            .cdet{
+                font-weight: 900;
+                opacity: .7;
+            }
+        </style>
+
+        
+        <h6 class="pb-3">BOOKING DETAILS -   <span class="text-danger">ROOM {{booking.room.room_number}} </span></h6>
+        <div class="ordercard">
+            <div class="row border-bottom align-items-center">
+
+                <p class="col-6 orderdet p-2 cdet">
+                    Customer
+                </p>
+                <p class=" col-6 orderdet p-2 cname">
+                    {{booking.customer_name}}
+                </p>
+            </div>
+            <div class="row border-bottom align-items-center">
+                <p class=" col-6 orderdet p-2 cdet" >
+                    Check IN Date
+                </p>
+                <p class="col-6 orderdet cname p-2">
+                    {{booking.check_in_date}} 
+                </p>
+            </div>
+            <div class="row border-bottom align-items-center">
+                <p class=" col-6 orderdet p-2 cdet">
+                    Checkout Date
+                </p>
+                <p class="col-6 orderdet cname p-2">
+                    {% if booking.status == '3' %} {{ booking.check_out_date }} {% else %}  {{ booking.expected_checkout_date }} {% endif %} 
+                </p>
+            </div>
+            <div class="row border-bottom align-items-center">
+                <p class=" col-6 orderdet p-2 cdet">
+                    Status
+                </p>
+                <p class="col-6 orderdet cname p-2 {% if booking.status == '1' %} text-warning {% elif booking.status == '2' %} text-danger {% else %} text-success {% endif %}">
+                    {{booking.get_status_display}} 
+                </p>
+            </div>
+            <div class="row border-bottom align-items-center">
+                <p class=" col-6 orderdet p-2 cdet">
+                    Booking Type
+                </p>
+                <p class="col-6 orderdet cname p-2">
+                    {{booking.get_booking_type_display}} 
+                </p>
+            </div>
+
+            <div class="row border-bottom align-items-center">
+                <p class=" col-6 orderdet p-2 cdet">
+                   Rent
+                </p>
+                <p class="col-6 orderdet cname p-2">
+                    {{booking.rate}} 
+                </p>
+            </div>
+
+            <div class="row border-bottom align-items-center">
+                <p class=" col-6 orderdet p-2 cdet">
+                   Mobile
+                </p>
+                <p class="col-6 orderdet cname p-2">
+                    {{booking.mobile}} 
+                </p>
+            </div>
+
+            <div class="row border-bottom align-items-center">
+                <p class=" col-6 orderdet p-2 cdet">
+                    Billing Address
+                </p>
+                <p class="col-6 orderdet cname p-2">
+                    
+                    {{booking.address}}
+                </p>
+            </div>
+
+
+
+        </div>
+
+        <h6 class="p-3">Reciepts</h6>
+        <div class="ordercard">
+
+            <div class="table-responsive">
+                <table class="table text-start align-middle table-bordered table-hover mb-0" style="text-align: center;">
+                    <thead class="text-center">
+                        <tr class="text-dark " >
+                            <th scope="col">Reciept No</th>
+                            <th scope="col">Remark</th>
+                            <th scope="col">Amount</th>
+                            <th scope="col">Status</th>
+                            <th scope="col">Date</th>
+                            <th scope="col">Action</th>
+                           
+                        </tr>
+                    </thead>
+                    <tbody class="text-center">
+                        {% for reciept in payments %}
+    
+                        <tr>
+                            <td>{{ reciept.id }}</td>
+                            <td>{{ reciept.narration }}</td>
+                            <td>{{ reciept.amount}}</td>
+                            <td>{{ reciept.get_payment_status_display}}</td>
+                            <!-- <td>{{ booking.get_booking_type_display }}</td> -->
+                            <td>{{ reciept.payment_date }}</td>
+                            <td><a class="btn btn-sm btn-success" href="{% url 'appartment:reciept_print' reciept.id %}">Preview</a>
+                                <a class="btn btn-sm btn-primary" href="{% url 'appartment:reciept_edit' reciept.id %}">Edit</a>
+                                <a class="btn btn-sm btn-danger"onclick="return confirm('Are you Sure..?')" href="{% url 'appartment:reciept_delete' reciept.id %}">Detete</a>
+                    
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            <!-- <div class="row border-bottom align-items-center">
+
+                <div class="col-1 orderdet p-2">
+                    Reciept_id
+                </div>
+                <div class=" col-1 orderdet p-2">
+
+                 </div>
+                <div class=" col-2 orderdet p-2">
+                   Remark
+                </div>
+                <div class="col-2 orderdet p-2">
+                    Amount
+                </div>
+                <div class=" col-2 orderdet p-2">
+                    Action
+                </div>
+                
+            </div>
+
+
+
+
+
+            {% for reciept in payments %}
+            <div class="row border-bottom align-items-center">
+
+                <div class="col-1 orderdet p-2">
+                    {{forloop.counter}}
+                </div>
+                <div class=" col-1 orderdet p-2">
+                    
+                  
+                </div>
+                <div class=" col-2 orderdet p-2">
+                   <span>{{reciept.narration}}</span> 
+                </div>
+                <div class="col-2 orderdet p-2">
+                    {{reciept.amount}}
+                </div>
+                <div class=" col-2 orderdet p-2">
+                    {{item.quantity}}
+                </div>
+               
+            </div> -->
+            <!-- {% endfor %} -->
+            <br><br>
+            <div class="row border-bottom align-items-center">
+
+                <div class="col-8 orderdet p-2">
+                    
+                </div>
+                <div class="col-2 orderdet p-2 cname">
+                 Amount Due
+                </div>
+                <div class=" col-2 orderdet p-2 cname">
+                   {{booking.amount_due}}
+                </div>
+            </div>
+            <div class="row border-bottom align-items-center">
+
+                <div class="col-8 orderdet p-2">
+                    
+                </div>
+                <div class="col-2 orderdet p-2 cname">
+                    Discount
+                  </div>
+                  <div class=" col-2 orderdet p-2  cname">
+                      OMR {{booking.discount}}
+                  </div>
+               
+            </div>
+        
+            
+            <div class="row border-bottom align-items-center">
+
+                <div class="col-8 orderdet p-2">
+                    
+                </div>
+                <div class="col-2 orderdet p-2 cname" style="color: black;">
+                   Total Payable
+                </div>
+                <div class=" col-2 orderdet p-2 cname" style="color: black;"">
+                   OMR {{booking.total_amount}}
+                </div>
+            </div>
+        <div class="table-responsive">
+
+        </div>
+    </div>
+
+</div>
+
+
+
+
+
+    {% endblock %}
