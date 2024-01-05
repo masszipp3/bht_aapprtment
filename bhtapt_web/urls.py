@@ -32,6 +32,7 @@ urlpatterns=[
 #------------------------------Dashboard and Booking urls ---------------------------- 
  
     path('',DashboardView.as_view(),name='dashboard'),
+    path('cleaning/<int:room_id>',cleaning.as_view(),name='cleaning'),
     path('booking/<int:room_id>/check_in',BookingView.as_view(),name='booking'),
     path('booking/<int:room_id>/check_out',checkoutView.as_view(),name='checkout'),
     path('booking/<int:room_id>/advance_payment',advance_payment.as_view(),name='advance'),
@@ -56,6 +57,48 @@ urlpatterns=[
 #------------------------------Login / Logout ---------------------------- 
 
     path('login',UserLogin.as_view(),name='login'),
+
+#------------------------------Account / Cash Reciepts ----------------------------
+ 
+    path('account/add',AccountAdd_View.as_view(),name='add_account'),
+    path('accounts',list_accounts.as_view(),name='accounts_list'),
+    path('account/<int:account_id>/edit',AccountAdd_View.as_view(),name='edit_account'),
+    path('account/<int:account_id>/delete',AccountDeleteView.as_view(),name='delete_account'),
+    path('cash_reciepts/add',CashRecieptAdd.as_view(),name='add_cashreciept'),
+    path('cash_reciepts/<int:cash_reciept>/print',recieptcashpayment.as_view(),name='cashreciept_print'),
+
+
+#------------------------------Cash Payments  ----------------------------
+
+    path('cash_payments/add',CashPaymentAdd.as_view(),name='add_cashpayment'),
+    path('cash_payments/list',CashPaymentListView.as_view(),name='cash_payments'),
+    path('cash_payments/<int:payment_id>/edit',CashPaymentAdd.as_view(),name='edit_cashpayment'),
+    path('cash_payments/<int:payment_id>/delete',CashPayment_Delete.as_view(),name='delete_cashpayment'),
+    path('cash_payments/<int:payment_id>/print',recieptcashpayment.as_view(),name='cashpayment_print'),
+
+
+#------------------------------ Journal  ----------------------------
+
+    path('journal/add',JournalAdd.as_view(),name='add_journal'),
+    path('journal/list',JournalListView.as_view(),name='journals'),
+    path('journal/<int:payment_id>/edit',JournalAdd.as_view(),name='edit_journal'),
+    path('journal/<int:payment_id>/delete',Journal_Delete.as_view(),name='delete_journal'),
+    path('journal/<int:journal_id>/print',recieptcashpayment.as_view(),name='jounalprint'),
+
+
+#------------------------------ Ledger  ----------------------------
+
+    path('ledger',LedgerView.as_view(),name='ledger'),
+
+
+
+
+
+
+
+
+
+
 
 
 

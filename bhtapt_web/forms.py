@@ -1,5 +1,5 @@
 from django import forms
-from .models import Floor,Category,Room,room_status,Booking
+from .models import Floor,Category,Room,room_status,Booking,Account,Payment,Cash_Payment,Journel
 from datetime import date
 from django.utils.dateparse import parse_datetime
 from django.utils.formats import get_format
@@ -90,3 +90,97 @@ class BookingForm(forms.ModelForm):
             datetime_format = get_format('DATETIME_INPUT_FORMATS')[0]  # or 'Y-m-d\TH:i' if not localized
             check_in_date = self.instance.check_in_date.strftime(datetime_format)
             self.initial['check_in_date'] = check_in_date    
+
+
+class AccountForm(forms.ModelForm):
+    class Meta:
+        model = Account
+        fields = ['name', 'account_type']
+        widgets = {
+                'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Account Name', 'required': True}),
+                'account_type': forms.Select(attrs={'class': 'form-select mb-3', 'aria-label': 'Default select example', 'required': True}),
+        }  
+
+
+class CashReciept_form(forms.ModelForm):
+
+    def save(self, commit=True):
+        instance = super(CashReciept_form, self).save(commit=False)
+        instance.payment_status = '1'
+        if commit:
+            instance.save()
+        return instance
+
+    def __init__(self, *args, **kwargs):
+        super(CashReciept_form, self).__init__(*args, **kwargs)
+        cash_account = Account.get_cash_account()
+        self.fields['to_account'].initial = cash_account
+        self.fields['from_account'].queryset = Account.objects.exclude(id=cash_account.id)
+        # self.fields['to_account'].widget.attrs['disabled'] = 'disabled'
+
+    class Meta:
+        model = Payment
+        fields = ['from_account', 'to_account','narration','payment_date','amount','description']
+        widgets = {
+                'narration': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Add Remark', 'required': True}),
+                'amount': forms.NumberInput(attrs={'class': 'form-control'}),
+                'payment_date': forms.DateInput(attrs={'class': 'form-control', 'placeholder': ' Date', 'type': 'date', 'required': True}),
+                'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 2, 'placeholder': 'Description'}),
+                'from_account': forms.Select(attrs={'class': 'form-select mb-3', 'aria-label': 'Default select example', 'required': True}),
+                'to_account': forms.HiddenInput(attrs={'class': 'form-select mb-3', 'aria-label': 'Default select example', 'required': True}),
+        }
+
+class CashPayment_form(forms.ModelForm):
+    def save(self, commit=True):
+        instance = super(CashPayment_form, self).save(commit=False)
+        instance.payment_status = '1'
+        if commit:
+            instance.save()
+        return instance
+
+    def __init__(self, *args, **kwargs):
+        super(CashPayment_form, self).__init__(*args, **kwargs)
+        cash_account = Account.get_cash_account()
+        self.fields['from_account'].initial = cash_account
+        self.fields['to_account'].queryset = Account.objects.exclude(id=cash_account.id)
+        # self.fields['to_account'].widget.attrs['disabled'] = 'disabled'
+
+    class Meta:
+        model = Cash_Payment
+        fields = ['from_account', 'to_account','narration','payment_date','amount','description']
+        widgets = {
+                'narration': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Add Remark', 'required': True}),
+                'amount': forms.NumberInput(attrs={'class': 'form-control'}),
+                'payment_date': forms.DateInput(attrs={'class': 'form-control', 'placeholder': ' Date', 'type': 'date', 'required': True}),
+                'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 2, 'placeholder': 'Description'}),
+                'to_account': forms.Select(attrs={'class': 'form-select mb-3', 'aria-label': 'Default select example', 'required': True}),
+                'from_account': forms.HiddenInput(attrs={'class': 'form-select mb-3', 'aria-label': 'Default select example', 'required': True}),
+        }  
+
+class journal_form(forms.ModelForm):
+    def save(self, commit=True):
+        instance = super(journal_form, self).save(commit=False)
+        instance.payment_status = '1'
+        if commit:
+            instance.save()
+        return instance
+
+    def __init__(self, *args, **kwargs):
+        super(journal_form, self).__init__(*args, **kwargs)
+        cash_account = Account.get_cash_account()  # Retrieve the cash account instance
+
+        # Set the initial value for 'to_account' to None for the blank choice
+        self.fields['to_account'].initial = None
+
+    class Meta:
+        model = Journel
+        fields = ['from_account', 'to_account','narration','payment_date','amount','description']
+        widgets = {
+                'narration': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Add Remark', 'required': True}),
+                'amount': forms.NumberInput(attrs={'class': 'form-control'}),
+                'payment_date': forms.DateInput(attrs={'class': 'form-control', 'placeholder': ' Date', 'type': 'date', 'required': True}),
+                'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 2, 'placeholder': 'Description'}),
+                'to_account': forms.Select(attrs={'class': 'form-select mb-3', 'aria-label': 'Default select example', 'required': True}),
+                'from_account': forms.Select(attrs={'class': 'form-select mb-3', 'aria-label': 'Default select example', 'required': True}),
+
+        }            

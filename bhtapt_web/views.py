@@ -5,23 +5,37 @@ from django.views import View
 from .forms import *
 from django.core.paginator import Paginator
 from django.http import JsonResponse
-from .  models import Payment,Transaction,Account
+from .  models import Payment,Transaction,Account,Cash_Payment
 from decimal import Decimal
 from datetime import timedelta, datetime
 from django.contrib.auth import authenticate, login,logout
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.utils.decorators import method_decorator
 from django.contrib.auth.decorators import login_required
+from django.db.models import Count, Q
+# from weasyprint import HTML
 
 
-def update_account(instance):
-    transactions = Transaction.objects.filter(payment=instance) 
+def update_account(instance,payment=None):
+    if payment =='cashpayment':
+        transactions = Transaction.objects.filter(cash_payment=instance) 
+    elif payment =='journal':
+        transactions = Transaction.objects.filter(journal=instance)     
+    else:    
+        transactions = Transaction.objects.filter(payment=instance) 
     for transaction in transactions:
         account =Account.objects.get(id=transaction.account.id)
         total_credits = Transaction.objects.filter(account=account, transaction_type='credit').aggregate(Sum('amount'))['amount__sum'] or 0
         total_debits = Transaction.objects.filter(account=account, transaction_type='debit').aggregate(Sum('amount'))['amount__sum'] or 0
         account.balance =  total_debits - total_credits
         account.save()
+
+def update_accountbalance(instance,payment=None):
+        total_credits = Transaction.objects.filter(account=instance, transaction_type='credit').aggregate(Sum('amount'))['amount__sum'] or 0
+        total_debits = Transaction.objects.filter(account=instance, transaction_type='debit').aggregate(Sum('amount'))['amount__sum'] or 0
+        instance.balance =  total_debits - total_credits
+        print(instance.balance)
+        instance.save()        
 
 # Create your views here.
         
@@ -163,11 +177,16 @@ class RoomDeleteView(View):
 @method_decorator(login_required, name='dispatch')
 class list_rooms(View):
     def get(self, request):
+        category_room_counts = Room.objects.values('category__category_name').annotate(
+            total_rooms=Count('id'),
+            vacant_rooms=Count('id', filter=Q(room_status='1')),
+            occupied_rooms=Count('id', filter=Q(room_status='2'))
+            ).order_by('category__category_name')
         room_list = Room.objects.all().order_by('-id') 
         paginator = Paginator(room_list, 10) 
         page_number = request.GET.get('page')  # Get the page number from the query string
         page_obj = paginator.get_page(page_number)  # Get the page object
-        return render(request, 'bhtapt_web/roomlist.html', {'page_obj': page_obj})  
+        return render(request, 'bhtapt_web/roomlist.html', {'page_obj': page_obj,'categorization':category_room_counts})  
 
 
 #---------------------------------------------------------------------------
@@ -178,7 +197,22 @@ class DashboardView(View):
     def get(self, request):
         floors = Floor.objects.prefetch_related('room_set').all().order_by('floor_no')
         return render(request, 'bhtapt_web/dashboard.html',{'floors':floors}) 
-    
+
+@method_decorator(login_required, name='dispatch')
+class cleaning(View):
+    def get(self, request,room_id):
+        room =Room.objects.get(id=room_id)
+        if room.room_status=='4':
+            booking_data = Booking.objects.filter(room=room,status='2')
+            if booking_data.exists():
+                room.room_status='2'
+            else:
+                room.room_status='1'
+            room.save()
+        else:
+            room.room_status='4'
+            room.save()    
+        return redirect('appartment:dashboard')
 
 @method_decorator(login_required, name='dispatch')
 class BookingView(View):
@@ -195,16 +229,19 @@ class BookingView(View):
         action='Confirm Check IN'
         return render(request, self.template_name,{'room':room_id,'form':form,'action':action})   
     def post(self,request,room_id):
-        form = self.form_class(request.POST)
-        if form.is_valid():
-            instance=form.save()
-            payments = Payment.objects.filter(booking=instance)
-            if not payments.exists():
-                return redirect('appartment:booking_reciept', booking_id=instance.id) 
-            return redirect('appartment:reciept_print', payment_id=payments.first().id) 
-        else:
-            action = 'Confirm Check IN' 
-            return render(request, self.template_name, {'room':room_id,"form": form,'action':action})
+        if Room.objects.get(id=room_id).room_status=='1':
+            form = self.form_class(request.POST)
+            if form.is_valid():
+                instance=form.save()
+                payments = Payment.objects.filter(booking=instance)
+                if not payments.exists():
+                    return redirect('appartment:booking_reciept', booking_id=instance.id) 
+                return redirect('appartment:reciept_print', payment_id=payments.first().id) 
+            else:
+                action = 'Confirm Check IN' 
+                return render(request, self.template_name, {'room':room_id,"form": form,'action':action})
+        else:    
+            return redirect('appartment:dashboard')    
 
 @method_decorator(login_required, name='dispatch')
 class advance_payment(View):
@@ -265,7 +302,7 @@ class checkoutView(View):
                 narration='Checkout Amount',
                 payment_date = date.today())
                 instance.save()
-                instance.room.room_status='1'
+                instance.room.room_status='4'
                 instance.room.save()
                 return redirect('appartment:reciept_print', payment_id=payment.id)
         else:
@@ -377,8 +414,14 @@ class RecieptEdit(View):
 class RecieptDeleteView(View):
     def get(self, request, payment_id):
         reciept = get_object_or_404(Payment, id=payment_id) 
-        update_account(reciept)
+        toaccount = reciept.to_account
+        from_account = reciept.from_account
         reciept.delete()
+        if toaccount: 
+            update_accountbalance(toaccount) 
+        if from_account :
+            update_accountbalance(from_account)
+
         return redirect(reverse_lazy('appartment:cashreciept_list'))  
 
 class reciept_print(View,LoginRequiredMixin):
@@ -399,8 +442,25 @@ class reciept_print(View,LoginRequiredMixin):
         total_advance = Payment.objects.filter(booking=payment.booking,narration__in=['Advance Payment','Additional Payment']).aggregate(total=Sum('amount'))['total']
         if total_advance is None:
             total_advance=0
-        return render(request, self.template_name,{'payment':payment,'advance':total_advance})     
-    
+        return render(request, self.template_name,{'payment':payment,'advance':total_advance}) 
+
+class recieptcashpayment(View,LoginRequiredMixin):
+    template_name = 'bhtapt_web/paymentreciept.html'
+    success_url = reverse_lazy('appartment:list_rooms')
+    def get(self, request,payment_id=None,journal_id=None,cash_reciept=None):
+        if payment_id is not None:
+            payment =Cash_Payment.objects.get(id=payment_id)
+            action = 'Cash Payment'
+            # return render(request, self.template_name,{'payment':payment}) 
+        if journal_id is not None:
+            payment =Journel.objects.get(id=journal_id)
+            action = 'Journal'
+        
+        if cash_reciept is not None:
+            payment =Payment.objects.get(id=cash_reciept)
+            action = 'Cash Reciept'
+            # return render(request, self.template_name,{'payment':payment})           
+        return render(request, self.template_name,{'payment':payment,'action':action})   
 
 #---------------------------------------------------------------------------
     
@@ -420,33 +480,33 @@ class CashBookView(View):
             current_date = datetime.strptime(date_str, '%b. %d, %Y').date()
         else :
             current_date=date.today()
-
+        cash_account = Account.get_cash_account()
         # Calculate opening and closing balances
-        opening_balance = Transaction.get_opening_balance_for_date(current_date)
-        closing_balance = Transaction.get_closing_balance_until_date(current_date)
+        opening_balance = Transaction.get_opening_balance_for_date(current_date,cash_account)
+        closing_balance = Transaction.get_closing_balance_until_date(current_date,cash_account)
 
         # Fetch transactions for the current date
 
         if 'all' in request.GET:
-            transactions = Transaction.objects.all().order_by('date')
+            transactions = Transaction.objects.filter(account=cash_account).order_by('date')
             filter='all'
-            earliest_transaction = Transaction.objects.earliest('date').date
-            latest_transaction = Transaction.objects.latest('date').date
+            earliest_transaction = Transaction.objects.filter(account=cash_account).earliest('date').date
+            latest_transaction = Transaction.objects.filter(account=cash_account).latest('date').date
             date_range = [earliest_transaction + timedelta(days=x) for x in range((latest_transaction - earliest_transaction).days + 1)]
-            daily_balances = {day: {'opening': Transaction.get_opening_balance_for_date(day),
-                        'closing': Transaction.get_closing_balance_until_date(day)}
+            daily_balances = {day: {'opening': Transaction.get_opening_balance_for_date(day,cash_account),
+                        'closing': Transaction.get_closing_balance_until_date(day,cash_account)}
                   for day in date_range}
         elif start_date is not None and end_date is not None:   
             filter = 'range'
             start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
             end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
-            date_range = [end_date + timedelta(days=x) for x in range((end_date - start_date).days + 1)]
-            daily_balances = {day: {'opening': Transaction.get_opening_balance_for_date(day),
-                        'closing': Transaction.get_closing_balance_until_date(day)}
+            date_range = [start_date + timedelta(days=x) for x in range((end_date - start_date).days + 1)]
+            daily_balances = {day: {'opening': Transaction.get_opening_balance_for_date(day,cash_account),
+                        'closing': Transaction.get_closing_balance_until_date(day,cash_account)}
                   for day in date_range}
-            transactions = Transaction.objects.filter(date__range=[start_date, end_date]).order_by('date')
+            transactions = Transaction.objects.filter(date__range=[start_date, end_date],account=cash_account).order_by('date')
         else:
-            transactions = Transaction.objects.filter(date=current_date).order_by('date')
+            transactions = Transaction.objects.filter(date=current_date,account=cash_account).order_by('date')
 
         # Determine the previous and next dates for pagination
         previous_date = current_date - timedelta(days=1)
@@ -505,3 +565,259 @@ class UserLogin(View):
         else:   
                 msg='Wrong Username or password'
         return render(request, self.template_name,{'msg':msg})  
+
+
+#---------------------------------------------------------------------------
+    
+#------------------------------Accounts / Cash Reciept Add ----------------------------------  
+
+@method_decorator(login_required, name='dispatch')
+class AccountAdd_View(View):
+    form_class = AccountForm
+    template_name = 'bhtapt_web/account_form.html'
+    success_url = reverse_lazy('appartment:accounts_list')
+    def get(self,request,account_id=None):
+        account = get_object_or_404(Account, id=account_id) if account_id else None
+        form = self.form_class(instance=account)
+        action = 'Add Account' if account_id is None else 'Update Account'
+        return render(request, self.template_name, {"form": form,'action':action})
+    
+    def post(self,request,account_id=None):
+        account = get_object_or_404(Account, id=account_id) if account_id else None
+        form = self.form_class(request.POST, instance=account)
+        if form.is_valid():
+            form.save()
+            return redirect(self.success_url)
+        else:
+            action = 'Add Account' if account_id is None else 'Update Account'
+            return render(request, self.template_name, {"form": form,'action':action})
+
+@method_decorator(login_required, name='dispatch')
+class list_accounts(View):
+    def get(self, request):
+        accounts_list = Account.objects.all().order_by('-id')
+        paginator = Paginator(accounts_list, 10) 
+        page_number = request.GET.get('page')  # Get the page number from the query string
+        page_obj = paginator.get_page(page_number)  # Get the page object
+        return render(request, 'bhtapt_web/accounts_list.html', {'page_obj': page_obj}) 
+
+
+@method_decorator(login_required, name='dispatch')        
+class AccountDeleteView(View):
+    def get(self, request, account_id):
+        account = get_object_or_404(Account, id=account_id) 
+        # update_account(account)
+        account.delete()
+        return redirect(reverse_lazy('appartment:accounts_list'))  
+    
+@method_decorator(login_required, name='dispatch')
+class CashRecieptAdd(View):
+    form_class = CashReciept_form
+    template_name = 'bhtapt_web/cash_recieptform.html'
+    success_url = reverse_lazy('appartment:cashreciept_list')
+    def get(self,request,payment_id=None):
+        cashreciept = get_object_or_404(Payment, id=payment_id) if payment_id else None
+        form = self.form_class(instance=cashreciept)
+        action = 'Add Cash Reciept' if payment_id is None else 'Update Reciept'
+        return render(request, self.template_name, {"form": form,'action':action})
+    
+    def post(self,request,payment_id=None):
+        payment = get_object_or_404(Payment, id=payment_id) if payment_id else None
+        form = self.form_class(request.POST, instance=payment)
+        if form.is_valid():
+            form.save()
+            return redirect(self.success_url)
+        else:
+            action = 'Add Cash Reciept' if payment_id is None else 'Update Reciept'
+            return render(request, self.template_name, {"form": form,'action':action})    
+        
+#---------------------------------------------------------------------------
+    
+#------------------------------ Cash Payment ----------------------------------     
+@method_decorator(login_required, name='dispatch')
+class CashPaymentAdd(View):
+    form_class = CashPayment_form
+    template_name = 'bhtapt_web/cashpayment_form.html'
+    success_url = reverse_lazy('appartment:cash_payments')
+    def get(self,request,payment_id=None):
+        cashpayment = get_object_or_404(Cash_Payment, id=payment_id) if payment_id else None
+        form = self.form_class(instance=cashpayment)
+        action = 'Add Cash Payment' if payment_id is None else 'Update Payment'
+        return render(request, self.template_name, {"form": form,'action':action})
+    
+    def post(self,request,payment_id=None):
+        cashpayment = get_object_or_404(Cash_Payment, id=payment_id) if payment_id else None
+        form = self.form_class(request.POST, instance=cashpayment)
+        room_number = request.POST.get('room_number',None)
+        if form.is_valid():
+            instance = form.save()
+            if room_number is not None:
+                try:
+                    room_instance = Room.objects.get(room_number=room_number)
+                    instance.room=room_instance
+                    instance.save()
+                except Room.DoesNotExist:
+                    pass   
+            return redirect(self.success_url)
+        else:
+            action = 'Add Payment' if payment_id is None else 'Update Payment'
+            return render(request, self.template_name, {"form": form,'action':action})          
+
+
+@method_decorator(login_required, name='dispatch')
+class CashPaymentListView(View):
+    template_name = 'bhtapt_web/cash_payments.html'
+    def get(self, request):
+        room_id = request.GET.get('room_id',None)
+        if room_id:
+            payments = Cash_Payment.objects.filter(room_id=room_id).order_by('-id')
+        else:
+            payments = Cash_Payment.objects.all().order_by('-id')
+        paginator = Paginator(payments, 10)
+        page_number = request.GET.get('page')  # Get the page number from the query string
+        page_obj = paginator.get_page(page_number)  # Get the page object
+        return render(request, self.template_name, {'page_obj': page_obj}) 
+
+
+@method_decorator(login_required, name='dispatch')        
+class CashPayment_Delete(View):
+    def get(self, request, payment_id):
+        payment = get_object_or_404(Cash_Payment, id=payment_id) 
+        # update_account(payment,'cashpayment')
+        toaccount = payment.to_account
+        from_account = payment.from_account
+        payment.delete()
+        if toaccount: 
+            update_accountbalance(toaccount) 
+        if from_account :
+            update_accountbalance(from_account)
+        return redirect(reverse_lazy('appartment:cash_payments'))          
+    
+
+#---------------------------------------------------------------------------
+    
+#------------------------------ Journal ----------------------------------       
+    
+@method_decorator(login_required, name='dispatch')
+class JournalAdd(View):
+    form_class = journal_form
+    template_name = 'bhtapt_web/journelcreateform.html'
+    success_url = reverse_lazy('appartment:journals')
+    def get(self,request,payment_id=None):
+        journal = get_object_or_404(Journel, id=payment_id) if payment_id else None
+        form = self.form_class(instance=journal)
+        action = 'Add Journal' if payment_id is None else 'Update Journal'
+        return render(request, self.template_name, {"form": form,'action':action})
+    
+    def post(self,request,payment_id=None):
+        journal = get_object_or_404(Journel, id=payment_id) if payment_id else None
+        form = self.form_class(request.POST, instance=journal)
+        if form.is_valid():
+            form.save()
+            return redirect(self.success_url)
+        else:
+            action = 'Add Journal' if payment_id is None else 'Update Journal'
+            return render(request, self.template_name, {"form": form,'action':action})          
+
+@method_decorator(login_required, name='dispatch')
+class JournalListView(View):
+    template_name = 'bhtapt_web/journals.html'
+    def get(self, request):
+        room_id = request.GET.get('room_id',None)
+        if room_id:
+            journals = Journel.objects.filter(room_id=room_id).order_by('-id')
+        else:
+            journals = Journel.objects.all().order_by('-id')
+        paginator = Paginator(journals, 10)
+        page_number = request.GET.get('page')  # Get the page number from the query string
+        page_obj = paginator.get_page(page_number)  # Get the page object
+        return render(request, self.template_name, {'page_obj': page_obj}) 
+    
+@method_decorator(login_required, name='dispatch')        
+class Journal_Delete(View):
+    def get(self, request, payment_id):
+        journal = get_object_or_404(Journel, id=payment_id) 
+        toaccount = journal.to_account
+        from_account = journal.from_account
+        journal.delete()
+        if toaccount: 
+            update_accountbalance(toaccount) 
+        if from_account :
+            update_accountbalance(from_account)
+        return redirect(reverse_lazy('appartment:journals'))    
+
+
+#---------------------------------------------------------------------------
+    
+#------------------------------ Ledger ---------------------------------- 
+
+@method_decorator(login_required, name='dispatch')
+class LedgerView(View):
+    template_name = 'bhtapt_web/ledger.html'
+    success_url = reverse_lazy('appartment:list_rooms')
+    def get(self, request):
+        accounts = Account.objects.all().order_by('-id')
+           # Get the date from the request or default to today
+        account_id = request.GET.get('account',None)
+        if account_id:
+            filter='daily'
+            daily_balances=''
+            date_str = request.GET.get('date',None)
+            start_date = request.GET.get('start',None)
+            end_date = request.GET.get('end', None)
+            if date_str:
+                current_date = datetime.strptime(date_str, '%b. %d, %Y').date()
+            else :
+                current_date=date.today()
+            account = Account.objects.get(id=account_id)
+            # Calculate opening and closing balances
+            opening_balance = Transaction.get_opening_balance_for_date(current_date,account)
+            closing_balance = Transaction.get_closing_balance_until_date(current_date,account)
+
+            # Fetch transactions for the current date
+
+            if 'all' in request.GET:
+                transactions = Transaction.objects.filter(account=account).order_by('date')
+                filter='all'
+                earliest_transaction = Transaction.objects.filter(account=account).earliest('date').date
+                latest_transaction = Transaction.objects.filter(account=account).latest('date').date
+                date_range = [earliest_transaction + timedelta(days=x) for x in range((latest_transaction - earliest_transaction).days + 1)]
+                daily_balances = {day: {'opening': Transaction.get_opening_balance_for_date(day,account),
+                            'closing': Transaction.get_closing_balance_until_date(day,account)}
+                    for day in date_range}
+            elif start_date is not None and end_date is not None:   
+                filter = 'range'
+                start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
+                end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
+                date_range = [start_date + timedelta(days=x) for x in range((end_date - start_date).days + 1)]
+                daily_balances = {day: {'opening': Transaction.get_opening_balance_for_date(day,account),
+                            'closing': Transaction.get_closing_balance_until_date(day,account)}
+                    for day in date_range}
+                transactions = Transaction.objects.filter(date__range=[start_date, end_date],account=account).order_by('date')
+            else:
+                transactions = Transaction.objects.filter(date=current_date,account=account).order_by('date')
+
+            # Determine the previous and next dates for pagination
+            previous_date = current_date - timedelta(days=1)
+            next_date = current_date + timedelta(days=1)
+
+            context = {
+                'opening_balance': opening_balance,
+                'closing_balance': closing_balance,
+                'transactions': transactions,
+                'current_date': current_date,
+                'previous_date': previous_date,
+                'next_date': next_date,
+                'filter':filter,
+                'daily_balances': daily_balances,
+                'accounts': accounts,
+                'account': account,
+            }
+            return render(request, self.template_name, context) 
+        else:
+            context = {
+                'accounts': accounts
+            }
+            return render(request, self.template_name, context) 
+
+

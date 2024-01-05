@@ -11,7 +11,8 @@ usertypes=(('1','Admin'),
 
 room_status=(('1','Avaialble'),
            ('2','Booked'),
-           ('3','Reserved'))
+           ('3','Reserved'),
+           ('4','Cleaning'))
 
 booking_status=(('1','Pending'),
            ('2','Booked'),
@@ -34,7 +35,7 @@ class User(AbstractUser):
     name = models.CharField(max_length=40,null=True,blank=True)
     email = models.EmailField(unique=True, max_length=30)
     username = models.CharField(max_length=255, unique=True)
-    phone_number = models.CharField(unique=True,max_length=15,null=False,blank=False)
+    phone_number = models.CharField(max_length=15,blank=False)
     user_type = models.CharField(max_length=40,null=True,blank=True,choices=usertypes)
     place = models.CharField(max_length=40,null=True,blank=True)
     soft_delete = models.BooleanField(default=False,null=False)
@@ -105,6 +106,35 @@ class Reservation(models.Model):
     class Meta:
         ordering = ['-created_at']
 
+
+
+class Account(models.Model):
+    ACCOUNT_TYPES = (
+        ('cash', 'Cash'),
+        ('bank', 'Bank'),
+        ('other', 'Other'),
+
+        # Add other account types as needed
+    )
+
+    name = models.CharField(max_length=100)
+    account_type = models.CharField(max_length=50, choices=ACCOUNT_TYPES,null=True)
+    balance = models.DecimalField(max_digits=20, decimal_places=3, default=0.000)
+
+    def __str__(self):
+        return f"{self.name} ({self.get_account_type_display()})"
+    
+    def update_balance(self):
+        total_credits = Transaction.objects.filter(account=self, transaction_type='credit').aggregate(Sum('amount'))['amount__sum'] or 0
+        total_debits = Transaction.objects.filter(account=self, transaction_type='debit').aggregate(Sum('amount'))['amount__sum'] or 0
+        self.balance =  total_debits - total_credits
+        self.save()
+    
+    @staticmethod
+    def get_cash_account():
+        return Account.objects.get_or_create(name="Cash Account", account_type="cash")[0]
+
+
 class Booking(models.Model):
     customer_name = models.CharField(max_length=100,null=True,blank=True)
     booking_no = models.CharField(max_length=100,null=True,blank=True)
@@ -138,16 +168,17 @@ class Booking(models.Model):
         super(Booking, self).save(update_fields=["booking_no"])
 
 
-
     def create_initial_payment(self):
         if self.advance_payment and self.advance_payment > 0:
         # Create an initial payment
+            
             payment = Payment.objects.create(
                 booking=self,
                 amount=self.advance_payment, 
                 payment_status='1',  #  '1' represents a status paid
                 narration='Advance Payment',
-                payment_date = self.check_in_date
+                payment_date = self.check_in_date,
+                to_account = Account.get_cash_account()
             )
         if self.room:
             self.room.room_status = '2'
@@ -156,35 +187,36 @@ class Booking(models.Model):
 
 class Payment(models.Model):
     booking = models.ForeignKey(Booking, on_delete=models.CASCADE,null=True,blank=True,related_name='payment_booking')
+    room = models.ForeignKey(Room, on_delete=models.SET_NULL,null=True,blank=True,related_name='payment_room')
     amount = models.DecimalField(max_digits=10, decimal_places=3)
     payment_date = models.DateField(null=True,blank=True)
     payment_status = models.CharField(max_length=50,choices=payment_status)
     narration = models.CharField(max_length=200, null=True, blank=True)
+    description = models.CharField(max_length=500, null=True, blank=True)
+    from_account = models.ForeignKey("Account", on_delete=models.CASCADE,null=True,blank=True,related_name='payment_fromaccount')
+    to_account = models.ForeignKey("Account", on_delete=models.CASCADE,null=True,blank=True,related_name='payment_toaccount',default=1)
 
+class Cash_Payment(models.Model):
+    booking = models.ForeignKey(Booking, on_delete=models.CASCADE,null=True,blank=True,related_name='Cash_Payment_booking')
+    room = models.ForeignKey(Room, on_delete=models.SET_NULL,null=True,blank=True,related_name='cashpayment_room')
+    amount = models.DecimalField(max_digits=10, decimal_places=3)
+    payment_date = models.DateField(null=True,blank=True)
+    payment_status = models.CharField(max_length=50,choices=payment_status,default='1')
+    narration = models.CharField(max_length=200, null=True, blank=True)
+    description = models.CharField(max_length=500, null=True, blank=True)
+    from_account = models.ForeignKey("Account", on_delete=models.CASCADE,null=True,blank=True,related_name='Cash_Payment_fromaccount')
+    to_account = models.ForeignKey("Account", on_delete=models.CASCADE,null=True,blank=True,related_name='Cash_Payment_toaccount',default=1)
 
-class Account(models.Model):
-    ACCOUNT_TYPES = (
-        ('cash', 'Cash'),
-        ('bank', 'Bank'),
-        # Add other account types as needed
-    )
-
-    name = models.CharField(max_length=100)
-    account_type = models.CharField(max_length=50, choices=ACCOUNT_TYPES,null=True)
-    balance = models.DecimalField(max_digits=20, decimal_places=3, default=0.000)
-
-    def __str__(self):
-        return f"{self.name} ({self.get_account_type_display()})"
-    
-    def update_balance(self):
-        total_credits = Transaction.objects.filter(account=self, transaction_type='credit').aggregate(Sum('amount'))['amount__sum'] or 0
-        total_debits = Transaction.objects.filter(account=self, transaction_type='debit').aggregate(Sum('amount'))['amount__sum'] or 0
-        self.balance =  total_debits - total_credits
-        self.save()
-    
-    @staticmethod
-    def get_cash_account():
-        return Account.objects.get_or_create(name="Cash Account", account_type="cash")[0]
+class Journel(models.Model):
+    booking = models.ForeignKey(Booking, on_delete=models.CASCADE,null=True,blank=True,related_name='Journal_booking')
+    room = models.ForeignKey(Room, on_delete=models.SET_NULL,null=True,blank=True,related_name='journel_room')
+    amount = models.DecimalField(max_digits=10, decimal_places=3)
+    payment_date = models.DateField(null=True,blank=True)
+    payment_status = models.CharField(max_length=50,choices=payment_status,default='1')
+    narration = models.CharField(max_length=200, null=True, blank=True)
+    description = models.CharField(max_length=500, null=True, blank=True)
+    from_account = models.ForeignKey("Account", on_delete=models.CASCADE,null=True,blank=True,related_name='journal_fromaccount')
+    to_account = models.ForeignKey("Account", on_delete=models.CASCADE,null=True,blank=True,related_name='journel_toaccount',default=1)
 
 class Transaction(models.Model):
     TRANSACTION_TYPES = (
@@ -200,6 +232,11 @@ class Transaction(models.Model):
     description = models.CharField(max_length=200, null=True, blank=True)
     booking = models.ForeignKey(Booking, on_delete=models.CASCADE, null=True, blank=True, related_name='transactions_bpoking')
     payment = models.ForeignKey(Payment, on_delete=models.CASCADE, null=True, blank=True, related_name='transactions_payment')
+    cash_payment = models.ForeignKey(Cash_Payment, on_delete=models.CASCADE, null=True, blank=True, related_name='transactions_cash_payment')
+    journal = models.ForeignKey(Journel, on_delete=models.CASCADE, null=True, blank=True, related_name='transactions_journal')
+
+
+    # from_account  = models.ForeignKey(Account, on_delete=models.CASCADE, related_name='transactions_from_account',null=True,blank=True)
     
     # def __str__(self):
     #     return f"{self.get_transaction_type_display()} - {self.amount} - {self.get_category_display()} on {self.date}"
@@ -209,23 +246,23 @@ class Transaction(models.Model):
         self.account.update_balance()
 
     @staticmethod
-    def get_balance_for_date(date):
+    def get_balance_for_date(date,account):
         total_credits = Transaction.objects.filter(
-            date=date, transaction_type='credit').aggregate(Sum('amount'))['amount__sum'] or 0
+            date=date,account=account, transaction_type='credit').aggregate(Sum('amount'))['amount__sum'] or 0
         total_debits = Transaction.objects.filter(
-            date=date, transaction_type='debit').aggregate(Sum('amount'))['amount__sum'] or 0
+            date=date,account=account, transaction_type='debit').aggregate(Sum('amount'))['amount__sum'] or 0
         return total_debits-total_credits 
 
 
     @staticmethod
-    def get_closing_balance_until_date(date):
+    def get_closing_balance_until_date(date,account):
         total_credits = Transaction.objects.filter(
-            date__lte=date, transaction_type='credit').aggregate(Sum('amount'))['amount__sum'] or 0
+            date__lte=date,account=account, transaction_type='credit').aggregate(Sum('amount'))['amount__sum'] or 0
         total_debits = Transaction.objects.filter(
-            date__lte=date, transaction_type='debit').aggregate(Sum('amount'))['amount__sum'] or 0
+            date__lte=date,account=account, transaction_type='debit').aggregate(Sum('amount'))['amount__sum'] or 0
         return total_debits-total_credits 
 
     @staticmethod
-    def get_opening_balance_for_date(date):
+    def get_opening_balance_for_date(date,account):
         previous_day = date - timedelta(days=1)
-        return Transaction.get_closing_balance_until_date(previous_day)    
+        return Transaction.get_closing_balance_until_date(previous_day,account)    

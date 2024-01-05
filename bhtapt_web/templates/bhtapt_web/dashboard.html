@@ -21,9 +21,14 @@
       <a href="{% url 'appartment:list_rooms' %}" class="nav-item nav-link"><i class="fa fa-th me-2"></i>Rooms</a>
       <a href="{% url 'appartment:list_floors' %}" class="nav-item nav-link "><i class="fa fa-keyboard me-2"></i>Floors</a>
       <a href="{% url 'appartment:list_category' %}" class="nav-item nav-link "><i class="fa fa-table me-2"></i>Categories</a>
-      <a href="{% url 'appartment:cashbook' %}" class="nav-item nav-link "><i class="fa fa-archive me-2"></i>Cash Book</a>
+      <a href="{% url 'appartment:cashbook' %}" class="nav-item nav-link "><i class="fa fa-book me-2"></i>Cash Book</a>
       <a href="{% url 'appartment:bookingslist' %}" class="nav-item nav-link "><i class="fa fa-chart-bar me-2"></i>Bookings</a>
       <a href="{% url 'appartment:cashreciept_list' %}" class="nav-item nav-link"><i class="fa fa-receipt me-2"></i>Cash Reciepts</a>
+      <a href="{% url 'appartment:accounts_list' %}" class="nav-item nav-link"><i class="fa fa-address-book me-2"></i>Accounts</a>
+      <a href="{% url 'appartment:cash_payments' %}" class="nav-item nav-link"><i class="fa fa-credit-card me-2"></i>Cash Payments</a>
+      <a href="{% url 'appartment:journals' %}" class="nav-item nav-link"><i class="fa fa-random me-2"></i>Journal</a>
+      <a href="{% url 'appartment:ledger' %}" class="nav-item nav-link"><i class="fa fa-archive me-2"></i>Ledger</a>
+
       <!-- <a href="chart.html" class="nav-item nav-link"><i class="fa fa-chart-bar me-2"></i>Cash Payments</a> -->
 
 
@@ -60,8 +65,8 @@
 
     }
     .boxyellow{
-        background-color: rgb(241, 137, 0);
-        background: linear-gradient(to top,rgb(241, 137, 0), #3a3637);
+        background-color: rgb(210, 175, 18);
+        background: linear-gradient(to top,rgb(221, 201, 17), #3a3637);
 
     }
     .boxes h6{
@@ -204,8 +209,11 @@
                 <h6 class="text-center">ROOM {{room.room_number}}</h6>
             </div> -->
             <div class="card">
-                <div class="card-image {% if room.room_status == '2' %} boxred {% elif room.room_status == '3' %} boxyellow {% else %} boxgreen {% endif %}">
-                    <a class="btn btn-primary" href="">{% if room.room_status == '1' %} Available {% else %} Booked {% endif %}</a>
+                <div class="card-image {% if room.room_status == '2' %} boxred {% elif room.room_status == '4' %} boxyellow {% else %} boxgreen {% endif %}">
+                    <a class="btn btn-primary" href="">{% if room.room_status == '1' %} Available {% elif room.room_status == '4' %} Cleaning {% else %} Booked {% endif %}</a>
+                    {% if room.room_status == '4' %}
+                    <a class="btn {% if room.room_status == '4' %} btn-warning {% else %} btn-success {% endif %} float-end" href="{% url 'appartment:cleaning' room.id %}"> Complete </a>
+                    {% endif %}
                     <!-- <a class="btn btn-warning" href=""></a> -->
                     <!-- <button class="btn btn-warning">View info</button> -->
     

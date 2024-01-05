@@ -277,7 +277,12 @@ $('#filter_btn').on('click',function(){
     var start_date =$('#start_date').val()
     var end_date = $('#end_date').val()
     if(start_date && end_date)
+       if (url.includes('?'))
+       window.location=url+"&start="+start_date+"&end="+end_date;
+       else
        window.location=url+"?start="+start_date+"&end="+end_date;
+
+
 })
 
 
