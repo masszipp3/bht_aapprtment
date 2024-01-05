@@ -81,50 +81,46 @@ function convertDate(inputDateTime) {
     // Split the input datetime string into date and time parts
     var parts = inputDateTime.split(", ");
     var dateParts = parts[0].split(" ");
-    var timePart = parts[2];
     var year = parts[1];
     var month = months[dateParts[0].substring(0, 3)];
-    var day = dateParts[1];
+    var day = dateParts[1].padStart(2, '0'); // Ensure day is two digits
 
-    // Ensure day is two digits
-    day = day.length === 1 ? '0' + day : day;
-
-    // Adjust time format
-    var timeSplit = timePart.split(" ");
-    var time = timeSplit[0];
-    var ampm = timeSplit[1];
-
-    if (ampm) {
-        ampm = ampm.toUpperCase();
-
-        if (ampm.includes('P.M.')) {
-            ampm = 'PM';
-        } else if (ampm.includes('A.M.')) {
-            ampm = 'AM';
-        }
-
-        // Handle time format variations
-        var [hours, minutes = '00', seconds = '00'] = time.split(':');
-        hours = parseInt(hours, 10);
-
-        // Convert to 24-hour format if needed
-        if (ampm === 'PM' && hours < 12) {
-            hours += 12;
-        } else if (ampm === 'AM' && hours === 12) {
-            hours = 0;
-        }
-
-        // Ensure hours and minutes are two digits
-        hours = ('0' + hours).slice(-2);
-        minutes = ('0' + minutes).slice(-2);
-        seconds = ('0' + seconds).slice(-2);
-
-        // Combine into new format
-        return year + '-' + month + '-' + day + 'T' + hours + ':' + minutes + ':' + seconds;
+    // Handle special cases for 'noon' and 'midnight'
+    var timePart = parts[2].toLowerCase();
+    if (timePart === 'noon') {
+        return `${year}-${month}-${day}T12:00:00`;
+    } else if (timePart === 'midnight') {
+        return `${year}-${month}-${day}T00:00:00`;
     }
 
-    return 'Invalid Date Time Format';
+    // Parse regular time
+    var timeSplit = timePart.split(" ");
+    var time = timeSplit[0];
+    var ampm = timeSplit[1].toUpperCase();
+
+    if (ampm.includes('P.M.')) {
+        ampm = 'PM';
+    } else if (ampm.includes('A.M.')) {
+        ampm = 'AM';
+    }
+
+    var [hours, minutes = '00', seconds = '00'] = time.split(':');
+    hours = parseInt(hours, 10);
+
+    // Convert to 24-hour format if needed
+    if (ampm === 'PM' && hours < 12) {
+        hours += 12;
+    } else if (ampm === 'AM' && hours === 12) {
+        hours = 0;
+    }
+
+    hours = hours.toString().padStart(2, '0');
+    minutes = minutes.padStart(2, '0');
+    seconds = seconds.padStart(2, '0');
+
+    return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
 }
+
 // var convertedDateTime = convertDate("Dec. 24, 2023, 9:05 p.m.");
 
 

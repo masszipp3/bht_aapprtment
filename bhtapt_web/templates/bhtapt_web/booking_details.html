@@ -96,7 +96,7 @@
                     Checkout Date
                 </p>
                 <p class="col-6 orderdet cname p-2">
-                    {% if booking.status == '3' %} {{ booking.check_out_date }} {% else %}  {{ booking.expected_checkout_date }} {% endif %} 
+                    {% if booking.status == '3' %} {{ booking.check_out_date }} {% else %}  -- {% endif %} 
                 </p>
             </div>
             <div class="row border-bottom align-items-center">

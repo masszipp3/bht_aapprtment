@@ -1,5 +1,5 @@
 from django.shortcuts import render,redirect,get_object_or_404
-from django.db.models import Sum
+from django.db.models import Sum,Min,Max
 from django.urls import reverse,reverse_lazy
 from django.views import View
 from .forms import *
@@ -261,7 +261,8 @@ class advance_payment(View):
                 amount=advance_amount, 
                 payment_status='1',  #  '1' represents a status paid
                 narration='Additional Payment',
-                payment_date = date.today()
+                payment_date = date.today(),
+                room = booking.room  if booking.room else None
             )
             booking.amount_due -= Decimal(advance_amount)
             booking.save()
@@ -821,3 +822,93 @@ class LedgerView(View):
             return render(request, self.template_name, context) 
 
 
+
+class account_ledger_view(View):
+    template_name = 'bhtapt_web/ledger.html'
+    success_url = reverse_lazy('appartment:list_rooms')
+    def get(self, request):
+        accounts = Account.objects.all().order_by('-id')
+        date_str = request.GET.get('date',None)
+        start_date = request.GET.get('start',None)
+        starting_balance=0
+
+        end_date = request.GET.get('end', None)
+        # Assuming 'account_id' is passed to this view to identify the account
+        account_id = request.GET.get('account',None)
+        if account_id:
+            account = Account.objects.get(id=account_id)
+            if start_date and end_date:
+                try:
+                    starting_date = datetime.strptime(start_date, '%Y-%m-%d').date()
+                    ending_date = datetime.strptime(end_date, '%Y-%m-%d').date()
+
+                    # Calculate the opening balance for the start date
+                    previous_day = starting_date - timedelta(days=1)
+                    starting_balance = Transaction.get_closing_balance_until_date(previous_day, account)
+
+                    transactions = Transaction.objects.filter(account=account, date__gte=starting_date, date__lte=ending_date).order_by('date')
+                except ValueError:
+                    # Handle invalid date format
+                    starting_date = 'invalid_date'
+                    ending_date = 'invalid date'
+                    transactions = Transaction.objects.filter(account=account).order_by('date')
+            else:
+                transactions = Transaction.objects.filter(account=account).order_by('date')
+                date_range = Transaction.objects.filter(account=account).aggregate(start_date=Min('date'), end_date=Max('date'))
+                starting_date = date_range.get('start_date')
+                ending_date = date_range.get('end_date')
+            ledger_data = []
+            running_balance = starting_balance
+            total_credits = 0
+            total_debits = 0
+
+            for transaction in transactions:
+                # Determine the type of transaction
+                if transaction.journal:
+                    trans_type = 'Journal'
+                elif transaction.cash_payment:
+                    trans_type = 'Cash Payment'
+                elif transaction.payment:
+                    trans_type = 'Payment'
+                else:
+                    trans_type = 'Other'
+
+                # Update running balance, total credits, and total debits
+                if transaction.transaction_type == 'credit':
+                    running_balance -= transaction.amount
+                    credit = transaction.amount
+                    debit = 0
+                    total_credits += credit
+                else:
+                    running_balance += transaction.amount
+                    debit = transaction.amount
+                    credit = 0
+                    total_debits += debit
+
+                # Append transaction data to ledger_data
+                ledger_data.append({
+                    'date': transaction.date,
+                    'transaction_id': transaction.payment.id if transaction.payment else transaction.cash_payment.id if transaction.cash_payment else transaction.journal.id,
+                    'type': trans_type,
+                    'description': transaction.transaction_remark,
+                    'debit': debit,
+                    'credit': credit,
+                    'balance': running_balance
+                })
+
+            context = {
+                'accounts': accounts,
+                'ledger_data': ledger_data,
+                'account': account,
+                'total_credits': total_credits,
+                'total_debits': total_debits,
+                'ending_balance': running_balance,
+                'starting_date':starting_date,
+                'ending_date':ending_date
+            }
+        else:
+            context = {
+                'accounts': accounts,
+            }
+
+        return render(request, self.template_name, context)

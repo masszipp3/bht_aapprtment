@@ -88,7 +88,7 @@ urlpatterns=[
 
 #------------------------------ Ledger  ----------------------------
 
-    path('ledger',LedgerView.as_view(),name='ledger'),
+    path('ledger',account_ledger_view.as_view(),name='ledger'),
 
 
 

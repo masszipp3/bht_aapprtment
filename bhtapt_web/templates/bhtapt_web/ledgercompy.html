@@ -73,15 +73,22 @@
         <input type="date" id="start_date" class="'class': 'form-control'," style="width: 100x;"> &nbsp;
           <label for=""> END DATE</label>&nbsp;
             <input type="date" id="end_date" class="'class': 'form-control'," style="width: 100x;">
-            <a id="filter_btn" data-url="{% url 'appartment:ledger' %}?account={{account.id}}" class="btn btn-primary ms-2">Filter</a>  <a href="{% url 'appartment:ledger' %}?account={{account.id}}&all" class="btn btn-danger ms-2">All</a>  <a  class="btn btn-warning ms-2" onclick="window.print()">Print</a> 
-
+            <a id="filter_btn" data-url="{% url 'appartment:ledger' %}?account={{account.id}}" class="btn btn-primary ms-2">Filter</a> {% if filter == 'all' or filter == 'range' %}  <a href="{% url 'appartment:ledger' %}?account={{account.id}}" class="btn btn-success ms-2">Today</a> {% else %} <a href="{% url 'appartment:ledger' %}?account={{account.id}}&all" class="btn btn-danger ms-2">All</a>{% endif %}  <a  class="btn btn-warning ms-2" onclick="window.print()">Print</a> 
+            {% if filter == 'daily' %}
+        <div class="d-flex float-end ">
+            <a class="me-2" href="{% url 'appartment:ledger' %}?account={{account.id}}&date={{ previous_date }}"><i class="fa fa-arrow-circle-left" style="font-size:36px"></i></a>
+            <a href="{% url 'appartment:ledger' %}?account={{account.id}}&date={{ next_date }}"><i class="fa fa-arrow-circle-right" style="font-size:36px"></i></a>
+        </div>
+        {% endif %}
     </div>
-   
+    {% endif %}
+       
+        {% if filter == 'daily' %}
 
         <div class="table-responsive">
-            <h6 class="text-dark p-4">{{account.name}} from {{starting_date}} to {{ending_date}} </h6>
+            <h6 class="text-dark p-4">{{account.name}} for {{ current_date }}</h6>
             
-        <!-- <h6  class="text-end p-3">Opening Balance: <span class="text-danger">{{ opening_balance }}</span> </h6> -->
+        <h6  class="text-end p-3">Opening Balance: <span class="text-danger">{{ opening_balance }}</span> </h6>
 
 
 
@@ -96,53 +103,99 @@
                         <th scope="col">Type</th>
                         <th scope="col">Debit</th>
                         <th scope="col">Credit</th>
-                        <th scope="col">Balance</th>
-
                     </tr>
                 </thead>
                 <tbody class="text-center">
-                    {% for transaction in ledger_data %}
+                    {% for transaction in transactions %}
 
                     <tr>
                         <td>{{ forloop.counter }}</td>
-                        <td>{{ transaction.transaction_id }}</td>
+
+
+                        {% if transaction.payment %}
+                        <td>{{ transaction.payment.id }}</td>
+                        {% elif transaction.cash_payment %}
+                        <td>{{ transaction.cash_payment.id }}</td>
+                        {% elif transaction.journal %}
+                        <td>{{ transaction.journal.id }}</td>
+                        {% else %}
+                        <td></td>
+                        {% endif %}
+
                         <td>{{ transaction.date}}</td>
-                        <td>{{ transaction.description}}</td>
-                        <td>{{ transaction.type}}</td>
+                        <td>{{ transaction.transaction_remark}}</td>
 
-                        {% if transaction.debit != 0 %}
-                        <td>{{ transaction.debit }}</td>
+                        {% if transaction.payment %}
+                        <td>Cash Reciept</td>
+                        {% elif transaction.cash_payment %}
+                        <td>Cash Payment</td>
+                        {% elif transaction.journal %}
+                        <td>Journal</td>
                         {% else %}
                         <td></td>
                         {% endif %}
-                        {% if transaction.credit != 0 %}
-                        <td>{{ transaction.credit }}</td>
+
+                        {% if transaction.transaction_type == 'debit' %}
+                        <td>{{ transaction.amount }}</td>
                         {% else %}
                         <td></td>
                         {% endif %}
-                        <td>{{ transaction.balance}}</td>
-
+                        {% if transaction.transaction_type == 'credit' %}
+                        <td>{{ transaction.amount }}</td>
+                        {% else %}
+                        <td></td>
+                        {% endif %}
                     </tr>
                     {% endfor %}
-                    <tr>
-                        <td></td>
-                        <td></td>
-                        <td></td>
-                        <td></td>
-                        <td></td>
-                        <th>{{total_debits}}</th>
-                        <th>{{total_credits}}</th>
-                        <th>{{ending_balance}}</th>
-                        
-
-                    </tr>
                 </tbody>
             </table>
-            <!-- <h6 class="text-end p-3">Closing Balance: <span class="text-danger">{{ closing_balance }}</span> </h6> -->
+            <h6 class="text-end p-3">Closing Balance: <span class="text-danger">{{ closing_balance }}</span> </h6>
         </div>
     </div>
 </div>
-{% endif %}
+{% elif filter == 'all' or filter == 'range' %}
 
+{% for day, balances in daily_balances.items %}
+<h6 class="text-dark p-4"> {{account.name}} for {{ day|date:"M. d, Y" }}</h6>
+<h6  class="text-end p-3">Opening Balance: <span class="text-danger">{{ balances.opening }}</span> </h6>
+    <table class="table text-start align-middle table-bordered table-hover mb-0" style="text-align: center;">
+        <thead class="text-center">
+            <tr class="text-dark " >
+                <th scope="col">SL No</th>
+                <th scope="col">Reciept_No</th>
+                <th scope="col">Date</th>
+                <th scope="col">Particulars</th>
+                <th scope="col">Debit</th>
+                <th scope="col">Credit</th>
+            </tr>
+        </thead>
+        <tbody class="text-center">
+            {% for transaction in transactions %}
+            {% if transaction.date == day %}
+            <tr>
+                <td>{{ forloop.counter }}</td>
+                <td>{{ transaction.payment.id }}</td>
+                <td>{{ transaction.date}}</td>
+                <td>{{ transaction.transaction_remark}}</td>
+                {% if transaction.transaction_type == 'debit' %}
+                <td>{{ transaction.amount }}</td>
+                {% else %}
+                <td></td>
+                {% endif %}
+                {% if transaction.transaction_type == 'credit' %}
+                <td>{{ transaction.amount }}</td>
+                {% else %}
+                <td></td>
+                {% endif %}
+            </tr>
+            {% endif %}
+            {% endfor %}
+        </tbody>
+    </table>
+    <h6 class="text-end p-3">Closing Balance: <span class="text-danger"> {{ balances.closing }}</span> </h6>
+    {% endfor %}
+    {% else %}
+     
+    {% endif %}
 
     {% endblock %}

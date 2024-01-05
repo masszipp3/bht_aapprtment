@@ -77,9 +77,11 @@
             <table class="table text-start align-middle table-bordered table-hover mb-0" style="text-align: center;">
                 <thead class="text-center">
                     <tr class="text-dark " >
-                        <th scope="col">SL No</th>
-                        <th scope="col">Reciept_No</th>
-                        <th scope="col">Date</th>
+                        <th scope="col">Sl No</th>
+                        <th scope="col">Entry No</th>
+                        <th scope="col">Transaction id</th>
+                        <th scope="col">Type</th>
+                        <th scope="col">Room</th>
                         <th scope="col">Particulars</th>
                         <th scope="col">Debit</th>
                         <th scope="col">Credit</th>
@@ -89,9 +91,38 @@
                     {% for transaction in transactions %}
 
                     <tr>
-                        <td>{{ forloop.counter }}</td>
+                        <td>{{ forloop.counter  }}</td>
+                        <td>{{ transaction.payment.booking.id }}</td>
+                        {% if transaction.payment %}
                         <td>{{ transaction.payment.id }}</td>
-                        <td>{{ transaction.date}}</td>
+                        {% elif transaction.cash_payment %}
+                        <td>{{ transaction.cash_payment.id }}</td>
+                        {% elif transaction.journal %}
+                        <td>{{ transaction.journal.id }}</td>
+                        {% else %}
+                        <td></td>
+                        {% endif %}
+                        {% if transaction.payment %}
+                        <td>Cash Reciept</td>
+                        {% elif transaction.cash_payment %}
+                        <td>Cash Payment</td>
+                        {% elif transaction.journal %}
+                        <td>Journal</td>
+                        {% else %}
+                        <td></td>
+                        {% endif %}
+
+                        {% if transaction.payment %}
+                        <td>{% if transcation.payment.booking.room %}{{ transaction.payment.booking.room.room_number}}{% else %} {{ transaction.payment.room.room_number}} {% endif %}</td>
+                        {% elif transaction.cash_payment %}
+                        <td>{{ transaction.cash_payment.room.room_number}}</td>
+                        {% elif transaction.journal %}
+                        <td>{{ transaction.jounal.room.room_number}}</td>
+                        {% else %}
+                        <td></td>
+                        {% endif %}
+                        
+                       
                         <td>{{ transaction.transaction_remark}}</td>
                         {% if transaction.transaction_type == 'debit' %}
                         <td>{{ transaction.amount }}</td>

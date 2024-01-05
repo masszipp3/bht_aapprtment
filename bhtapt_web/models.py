@@ -178,7 +178,8 @@ class Booking(models.Model):
                 payment_status='1',  #  '1' represents a status paid
                 narration='Advance Payment',
                 payment_date = self.check_in_date,
-                to_account = Account.get_cash_account()
+                to_account = Account.get_cash_account(),
+                room = self.room  if self.room else None
             )
         if self.room:
             self.room.room_status = '2'
