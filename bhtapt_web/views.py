@@ -752,77 +752,76 @@ class Journal_Delete(View):
     
 #------------------------------ Ledger ---------------------------------- 
 
+# @method_decorator(login_required, name='dispatch')
+# class LedgerView(View):
+#     template_name = 'bhtapt_web/ledger.html'
+#     success_url = reverse_lazy('appartment:list_rooms')
+#     def get(self, request):
+#         accounts = Account.objects.all().order_by('-id')
+#            # Get the date from the request or default to today
+#         account_id = request.GET.get('account',None)
+#         if account_id:
+#             filter='daily'
+#             daily_balances=''
+#             date_str = request.GET.get('date',None)
+#             start_date = request.GET.get('start',None)
+#             end_date = request.GET.get('end', None)
+#             if date_str:
+#                 current_date = datetime.strptime(date_str, '%b. %d, %Y').date()
+#             else :
+#                 current_date=date.today()
+#             account = Account.objects.get(id=account_id)
+#             # Calculate opening and closing balances
+#             opening_balance = Transaction.get_opening_balance_for_date(current_date,account)
+#             closing_balance = Transaction.get_closing_balance_until_date(current_date,account)
+
+#             # Fetch transactions for the current date
+
+#             if 'all' in request.GET:
+#                 transactions = Transaction.objects.filter(account=account).order_by('date')
+#                 filter='all'
+#                 earliest_transaction = Transaction.objects.filter(account=account).earliest('date').date
+#                 latest_transaction = Transaction.objects.filter(account=account).latest('date').date
+#                 date_range = [earliest_transaction + timedelta(days=x) for x in range((latest_transaction - earliest_transaction).days + 1)]
+#                 daily_balances = {day: {'opening': Transaction.get_opening_balance_for_date(day,account),
+#                             'closing': Transaction.get_closing_balance_until_date(day,account)}
+#                     for day in date_range}
+#             elif start_date is not None and end_date is not None:   
+#                 filter = 'range'
+#                 start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
+#                 end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
+#                 date_range = [start_date + timedelta(days=x) for x in range((end_date - start_date).days + 1)]
+#                 daily_balances = {day: {'opening': Transaction.get_opening_balance_for_date(day,account),
+#                             'closing': Transaction.get_closing_balance_until_date(day,account)}
+#                     for day in date_range}
+#                 transactions = Transaction.objects.filter(date__range=[start_date, end_date],account=account).order_by('date')
+#             else:
+#                 transactions = Transaction.objects.filter(date=current_date,account=account).order_by('date')
+
+#             # Determine the previous and next dates for pagination
+#             previous_date = current_date - timedelta(days=1)
+#             next_date = current_date + timedelta(days=1)
+
+#             context = {
+#                 'opening_balance': opening_balance,
+#                 'closing_balance': closing_balance,
+#                 'transactions': transactions,
+#                 'current_date': current_date,
+#                 'previous_date': previous_date,
+#                 'next_date': next_date,
+#                 'filter':filter,
+#                 'daily_balances': daily_balances,
+#                 'accounts': accounts,
+#                 'account': account,
+#             }
+#             return render(request, self.template_name, context) 
+#         else:
+#             context = {
+#                 'accounts': accounts
+#             }
+#             return render(request, self.template_name, context) 
+
 @method_decorator(login_required, name='dispatch')
-class LedgerView(View):
-    template_name = 'bhtapt_web/ledger.html'
-    success_url = reverse_lazy('appartment:list_rooms')
-    def get(self, request):
-        accounts = Account.objects.all().order_by('-id')
-           # Get the date from the request or default to today
-        account_id = request.GET.get('account',None)
-        if account_id:
-            filter='daily'
-            daily_balances=''
-            date_str = request.GET.get('date',None)
-            start_date = request.GET.get('start',None)
-            end_date = request.GET.get('end', None)
-            if date_str:
-                current_date = datetime.strptime(date_str, '%b. %d, %Y').date()
-            else :
-                current_date=date.today()
-            account = Account.objects.get(id=account_id)
-            # Calculate opening and closing balances
-            opening_balance = Transaction.get_opening_balance_for_date(current_date,account)
-            closing_balance = Transaction.get_closing_balance_until_date(current_date,account)
-
-            # Fetch transactions for the current date
-
-            if 'all' in request.GET:
-                transactions = Transaction.objects.filter(account=account).order_by('date')
-                filter='all'
-                earliest_transaction = Transaction.objects.filter(account=account).earliest('date').date
-                latest_transaction = Transaction.objects.filter(account=account).latest('date').date
-                date_range = [earliest_transaction + timedelta(days=x) for x in range((latest_transaction - earliest_transaction).days + 1)]
-                daily_balances = {day: {'opening': Transaction.get_opening_balance_for_date(day,account),
-                            'closing': Transaction.get_closing_balance_until_date(day,account)}
-                    for day in date_range}
-            elif start_date is not None and end_date is not None:   
-                filter = 'range'
-                start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
-                end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
-                date_range = [start_date + timedelta(days=x) for x in range((end_date - start_date).days + 1)]
-                daily_balances = {day: {'opening': Transaction.get_opening_balance_for_date(day,account),
-                            'closing': Transaction.get_closing_balance_until_date(day,account)}
-                    for day in date_range}
-                transactions = Transaction.objects.filter(date__range=[start_date, end_date],account=account).order_by('date')
-            else:
-                transactions = Transaction.objects.filter(date=current_date,account=account).order_by('date')
-
-            # Determine the previous and next dates for pagination
-            previous_date = current_date - timedelta(days=1)
-            next_date = current_date + timedelta(days=1)
-
-            context = {
-                'opening_balance': opening_balance,
-                'closing_balance': closing_balance,
-                'transactions': transactions,
-                'current_date': current_date,
-                'previous_date': previous_date,
-                'next_date': next_date,
-                'filter':filter,
-                'daily_balances': daily_balances,
-                'accounts': accounts,
-                'account': account,
-            }
-            return render(request, self.template_name, context) 
-        else:
-            context = {
-                'accounts': accounts
-            }
-            return render(request, self.template_name, context) 
-
-
-
 class account_ledger_view(View):
     template_name = 'bhtapt_web/ledger.html'
     success_url = reverse_lazy('appartment:list_rooms')
@@ -831,6 +830,8 @@ class account_ledger_view(View):
         date_str = request.GET.get('date',None)
         start_date = request.GET.get('start',None)
         starting_balance=0
+        opening_balance =0
+        filter=False
 
         end_date = request.GET.get('end', None)
         # Assuming 'account_id' is passed to this view to identify the account
@@ -840,11 +841,13 @@ class account_ledger_view(View):
             if start_date and end_date:
                 try:
                     starting_date = datetime.strptime(start_date, '%Y-%m-%d').date()
+                    filter=True
                     ending_date = datetime.strptime(end_date, '%Y-%m-%d').date()
 
                     # Calculate the opening balance for the start date
                     previous_day = starting_date - timedelta(days=1)
                     starting_balance = Transaction.get_closing_balance_until_date(previous_day, account)
+                    opening_balance = starting_balance
 
                     transactions = Transaction.objects.filter(account=account, date__gte=starting_date, date__lte=ending_date).order_by('date')
                 except ValueError:
@@ -900,11 +903,14 @@ class account_ledger_view(View):
                 'accounts': accounts,
                 'ledger_data': ledger_data,
                 'account': account,
-                'total_credits': total_credits,
-                'total_debits': total_debits,
+                'total_credits': total_credits + abs(opening_balance) if opening_balance < 0 else total_credits  if opening_balance == 0 else total_credits,
+                'total_debits': total_debits + abs(opening_balance) if opening_balance > 0 else total_debits  if opening_balance == 0 else total_debits,
                 'ending_balance': running_balance,
                 'starting_date':starting_date,
-                'ending_date':ending_date
+                'positive_openingbalance':abs(opening_balance),
+                'ending_date':ending_date,
+                'opening_balance': opening_balance or 0,
+                'filter' : filter 
             }
         else:
             context = {

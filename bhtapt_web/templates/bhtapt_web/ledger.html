@@ -1,6 +1,9 @@
 {% extends 'bhtapt_web/index.html' %}
 
+{% load custom_filters %}
+
 {% block nav %}
+
 
 <!-- <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css"> -->
 <style>
@@ -101,6 +104,24 @@
                     </tr>
                 </thead>
                 <tbody class="text-center">
+                    {% if filter %}
+                    <tr>
+                        <th colspan="5" class="text-danger">Opening Balance</th>
+                        <!-- <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td> -->
+                        {% if opening_balance > 0 %}
+                        <td>{{positive_openingbalance}}</td>
+                        {% else %} <td></td>{% endif%}
+                        {% if opening_balance < 0 %}
+                        <td>{{positive_openingbalance}}</td>
+                        {% else %} <td></td>{% endif%}
+                        <td>{{opening_balance}}</td>
+
+
+                    </tr>
+                    {% endif %}
                     {% for transaction in ledger_data %}
 
                     <tr>
