@@ -872,7 +872,7 @@ class account_ledger_view(View):
                 elif transaction.cash_payment:
                     trans_type = 'Cash Payment'
                 elif transaction.payment:
-                    trans_type = 'Payment'
+                    trans_type = 'Cash Reciept'
                 else:
                     trans_type = 'Other'
 
