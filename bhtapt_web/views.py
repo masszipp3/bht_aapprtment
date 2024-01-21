@@ -184,9 +184,19 @@ class list_rooms(View):
             ).order_by('category__category_name')
         room_list = Room.objects.all().order_by('-id') 
         paginator = Paginator(room_list, 10) 
+        total_room_count = Room.objects.count()
+        vacant_room_count = Room.objects.filter(room_status='1').count()
+        occupied_room_count = Room.objects.filter(room_status='2').count()
         page_number = request.GET.get('page')  # Get the page number from the query string
         page_obj = paginator.get_page(page_number)  # Get the page object
-        return render(request, 'bhtapt_web/roomlist.html', {'page_obj': page_obj,'categorization':category_room_counts})  
+        context = {
+            'page_obj': page_obj,
+            'categorization': category_room_counts,
+            'total_room_count': total_room_count,
+            'vacant_room_count': vacant_room_count,
+            'occupied_room_count': occupied_room_count
+        }
+        return render(request, 'bhtapt_web/roomlist.html', context)  
 
 
 #---------------------------------------------------------------------------
@@ -229,7 +239,7 @@ class BookingView(View):
         action='Confirm Check IN'
         return render(request, self.template_name,{'room':room_id,'form':form,'action':action})   
     def post(self,request,room_id):
-        if Room.objects.get(id=room_id).room_status=='1':
+        if not Booking.objects.filter(room_id=room_id,status ='2').exists():
             form = self.form_class(request.POST)
             if form.is_valid():
                 instance=form.save()
@@ -366,7 +376,7 @@ class BookingEdit(View):
 class BookingDeleteView(View):
     def get(self, request, booking_id):
         booking = get_object_or_404(Booking, id=booking_id)
-        if booking.status == '2':
+        if booking.status == '2' and not Booking.objects.filter(room=booking.room, status ='2').exclude(id=booking_id).exists():
             booking.room.room_status='1'
             booking.room.save()
         transactions = Transaction.objects.filter(booking=booking) 
