@@ -13,6 +13,9 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.utils.decorators import method_decorator
 from django.contrib.auth.decorators import login_required
 from django.db.models import Count, Q
+from django.contrib.auth.hashers import make_password
+from . utils import user_is_superuser
+from django.contrib.auth.decorators import user_passes_test
 # from weasyprint import HTML
 
 
@@ -48,6 +51,7 @@ class IndexView(View):
 
 #------------------------------Floor Views ----------------------------
 @method_decorator(login_required, name='dispatch')
+@method_decorator(user_passes_test(user_is_superuser), name='dispatch')
 class addfloor(View):
     def get(self, request):
         form = FloorForm()
@@ -62,6 +66,7 @@ class addfloor(View):
         else:
             return render(request, 'bhtapt_web/addfloor.html',{'form':form,'action':'Add floor'}) 
 @method_decorator(login_required, name='dispatch')
+@method_decorator(user_passes_test(user_is_superuser), name='dispatch')
 class list_floors(View):
     def get(self, request):
         floors_list = Floor.objects.filter(soft_delete=False)  
@@ -71,7 +76,8 @@ class list_floors(View):
         return render(request, 'bhtapt_web/floorlist.html', {'page_obj': page_obj})      
 
 @method_decorator(login_required, name='dispatch')
-class FloorEdit(View,LoginRequiredMixin):
+@method_decorator(user_passes_test(user_is_superuser), name='dispatch')
+class FloorEdit(View):
     template_name = 'bhtapt_web/addfloor.html'
     success_url = 'appartment:list_floors'  # Replace with the name of the URL to redirect after a successful save
 
@@ -96,7 +102,8 @@ class FloorEdit(View,LoginRequiredMixin):
         return render(request, self.template_name, {'form': form,'action':'Update'})           
 
 @method_decorator(login_required, name='dispatch')
-class FloorDeleteView(View,LoginRequiredMixin):
+@method_decorator(user_passes_test(user_is_superuser), name='dispatch')
+class FloorDeleteView(View):
     def get(self, request, floor_id):
         floor = get_object_or_404(Floor, id=floor_id)
         floor.delete()
@@ -106,6 +113,7 @@ class FloorDeleteView(View,LoginRequiredMixin):
 
 #------------------------------Category Views ------------------------------
 @method_decorator(login_required, name='dispatch')
+@method_decorator(user_passes_test(user_is_superuser), name='dispatch')
 class CategoryCreateUpdateView(View):
     form_class = CategoryForm
     template_name = 'bhtapt_web/category_form.html'
@@ -127,6 +135,7 @@ class CategoryCreateUpdateView(View):
             action = 'Add Category' if category_id is None else 'Update Category'
             return render(request, self.template_name, {"form": form,'action':action})
 @method_decorator(login_required, name='dispatch')
+@method_decorator(user_passes_test(user_is_superuser), name='dispatch')
 class CategoryDeleteView(View):
     def get(self, request, category_id):
         category = get_object_or_404(Category, id=category_id)
@@ -134,6 +143,7 @@ class CategoryDeleteView(View):
         return redirect(reverse_lazy('appartment:list_category'))
 
 @method_decorator(login_required, name='dispatch')
+@method_decorator(user_passes_test(user_is_superuser), name='dispatch')
 class list_category(View):
     def get(self, request):
         category_list = Category.objects.filter(soft_delete=False).order_by('-id') 
@@ -146,6 +156,7 @@ class list_category(View):
     
 #------------------------------Room Views ----------------------------------
 @method_decorator(login_required, name='dispatch')
+@method_decorator(user_passes_test(user_is_superuser), name='dispatch')
 class RoomCreateUpdateView(View):
     form_class = RoomForm
     template_name = 'bhtapt_web/roomform.html'
@@ -168,6 +179,7 @@ class RoomCreateUpdateView(View):
             return render(request, self.template_name, {"form": form,'action':action})
 
 @method_decorator(login_required, name='dispatch')
+@method_decorator(user_passes_test(user_is_superuser), name='dispatch')
 class RoomDeleteView(View):
     def get(self, request, room_id):
         room = get_object_or_404(Room, id=room_id)
@@ -175,6 +187,7 @@ class RoomDeleteView(View):
         return redirect(reverse_lazy('appartment:list_rooms'))        
     
 @method_decorator(login_required, name='dispatch')
+@method_decorator(user_passes_test(user_is_superuser), name='dispatch')
 class list_rooms(View):
     def get(self, request):
         category_room_counts = Room.objects.values('category__category_name').annotate(
@@ -259,8 +272,11 @@ class advance_payment(View):
     success_url = reverse_lazy('appartment:dashboard')
     def get(self, request,room_id):
         booking = Booking.objects.filter(room_id=room_id,status='2').last()
+        outstanding = booking.calculate_outstanding_amount() or 0.000
+        totals_Advance = Payment.objects.filter(booking=booking).aggregate(total=Sum('amount'))['total'] or 0
         # floors = Floor.objects.prefetch_related('room_set').all().order_by('floor_no')
-        return render(request, self.template_name,{'booking':booking})     
+        
+        return render(request, self.template_name,{'booking':booking,'advance':totals_Advance,'outstanding':outstanding})     
 
     def post(self,request,room_id):
         advance_amount = request.POST.get('additional_amount',None)
@@ -272,6 +288,8 @@ class advance_payment(View):
                 payment_status='1',  #  '1' represents a status paid
                 narration='Additional Payment',
                 payment_date = date.today(),
+                from_account = Account.get_advanceAccount(),
+                to_account = Account.get_cash_account(),
                 room = booking.room  if booking.room else None
             )
             booking.amount_due -= Decimal(advance_amount)
@@ -306,15 +324,17 @@ class checkoutView(View):
                 instance.duration = request.POST.get('duration')
                 instance.amount_due=0
                 instance.status = "3"
-                payment = Payment.objects.create(
-                booking=instance,
-                amount=checkout_amount, 
-                payment_status='1',  #  '1' represents a status paid
-                narration='Checkout Amount',
-                payment_date = date.today())
                 instance.save()
                 instance.room.room_status='4'
                 instance.room.save()
+                payment = Payment.objects.create(
+                booking=instance,
+                amount=checkout_amount,
+                payment_status='1',  #  '1' represents a status paid
+                narration='Checkout Amount',
+                from_account = Account.get_checkoutaccount(),
+                to_account = Account.get_cash_account(),
+                payment_date = date.today())
                 return redirect('appartment:reciept_print', payment_id=payment.id)
         else:
              return render(request, self.template_name,{'booking':instance,'advance':round(total_amount,2),'bill_no':bill_no})  
@@ -347,6 +367,7 @@ class bookingdetail(View):
         return render(request, self.template_name, {'booking': booking_list,'payments':payments})          
 
 @method_decorator(login_required, name='dispatch')
+@method_decorator(user_passes_test(user_is_superuser), name='dispatch')
 class BookingEdit(View):
     form_class = BookingForm
     template_name = 'bhtapt_web/booking.html'
@@ -373,6 +394,7 @@ class BookingEdit(View):
             return render(request, self.template_name, {'room':room.id,"form": form,'action':action})    
 
 @method_decorator(login_required, name='dispatch')
+@method_decorator(user_passes_test(user_is_superuser), name='dispatch')
 class BookingDeleteView(View):
     def get(self, request, booking_id):
         booking = get_object_or_404(Booking, id=booking_id)
@@ -391,6 +413,7 @@ class BookingDeleteView(View):
         return redirect(reverse_lazy('appartment:bookingslist'))    
 
 @method_decorator(login_required, name='dispatch')
+@method_decorator(user_passes_test(user_is_superuser), name='dispatch')
 class RecieptEdit(View):
     form_class = BookingForm
     template_name = 'bhtapt_web/edit_payment.html'
@@ -421,7 +444,8 @@ class RecieptEdit(View):
         else:
             action=reciept.narration   
             return render(request, self.template_name,{'reciept':reciept,'action':action})    
-@method_decorator(login_required, name='dispatch')        
+@method_decorator(login_required, name='dispatch')  
+@method_decorator(user_passes_test(user_is_superuser), name='dispatch')      
 class RecieptDeleteView(View):
     def get(self, request, payment_id):
         reciept = get_object_or_404(Payment, id=payment_id) 
@@ -435,7 +459,8 @@ class RecieptDeleteView(View):
 
         return redirect(reverse_lazy('appartment:cashreciept_list'))  
 
-class reciept_print(View,LoginRequiredMixin):
+@method_decorator(login_required, name='dispatch')  
+class reciept_print(View):
     template_name = 'bhtapt_web/payment_reciept.html'
     success_url = reverse_lazy('appartment:list_rooms')
     def get(self, request,booking_id=None,payment_id=None):
@@ -455,7 +480,8 @@ class reciept_print(View,LoginRequiredMixin):
             total_advance=0
         return render(request, self.template_name,{'payment':payment,'advance':total_advance}) 
 
-class recieptcashpayment(View,LoginRequiredMixin):
+@method_decorator(login_required, name='dispatch')  
+class recieptcashpayment(View):
     template_name = 'bhtapt_web/paymentreciept.html'
     success_url = reverse_lazy('appartment:list_rooms')
     def get(self, request,payment_id=None,journal_id=None,cash_reciept=None):
@@ -564,25 +590,31 @@ class RoomDetails(View):
 class UserLogin(View):
     template_name = 'bhtapt_web/signin.html'
     def get(self, request):
+        if request.user.is_authenticated: return redirect('appartment:dashboard')
         return render(request, self.template_name)  
     
     def post(self, request):
         username=request.POST.get('username')
         password=request.POST.get('password')
         user = authenticate(request, username=username, password=password)
-        if user is not None and user.is_superuser:
+        if user is not None:
                 login(request, user)
                 return redirect('appartment:dashboard') 
         else:   
                 msg='Wrong Username or password'
         return render(request, self.template_name,{'msg':msg})  
 
-
+class UserLogout(View):
+    def get(self, request):
+        logout(request)
+        return redirect('appartment:login')
+    
 #---------------------------------------------------------------------------
     
 #------------------------------Accounts / Cash Reciept Add ----------------------------------  
 
 @method_decorator(login_required, name='dispatch')
+@method_decorator(user_passes_test(user_is_superuser), name='dispatch')      
 class AccountAdd_View(View):
     form_class = AccountForm
     template_name = 'bhtapt_web/account_form.html'
@@ -604,6 +636,7 @@ class AccountAdd_View(View):
             return render(request, self.template_name, {"form": form,'action':action})
 
 @method_decorator(login_required, name='dispatch')
+@method_decorator(user_passes_test(user_is_superuser), name='dispatch')      
 class list_accounts(View):
     def get(self, request):
         accounts_list = Account.objects.all().order_by('-id')
@@ -613,7 +646,8 @@ class list_accounts(View):
         return render(request, 'bhtapt_web/accounts_list.html', {'page_obj': page_obj}) 
 
 
-@method_decorator(login_required, name='dispatch')        
+@method_decorator(login_required, name='dispatch') 
+@method_decorator(user_passes_test(user_is_superuser), name='dispatch')      
 class AccountDeleteView(View):
     def get(self, request, account_id):
         account = get_object_or_404(Account, id=account_id) 
@@ -627,6 +661,9 @@ class CashRecieptAdd(View):
     template_name = 'bhtapt_web/cash_recieptform.html'
     success_url = reverse_lazy('appartment:cashreciept_list')
     def get(self,request,payment_id=None):
+        if payment_id :
+            if not request.user.is_superuser:
+                return redirect(self.success_url)
         cashreciept = get_object_or_404(Payment, id=payment_id) if payment_id else None
         form = self.form_class(instance=cashreciept)
         action = 'Add Cash Reciept' if payment_id is None else 'Update Reciept'
@@ -651,6 +688,9 @@ class CashPaymentAdd(View):
     template_name = 'bhtapt_web/cashpayment_form.html'
     success_url = reverse_lazy('appartment:cash_payments')
     def get(self,request,payment_id=None):
+        if payment_id :
+            if not request.user.is_superuser:
+                return redirect(self.success_url)
         cashpayment = get_object_or_404(Cash_Payment, id=payment_id) if payment_id else None
         form = self.form_class(instance=cashpayment)
         action = 'Add Cash Payment' if payment_id is None else 'Update Payment'
@@ -690,7 +730,8 @@ class CashPaymentListView(View):
         return render(request, self.template_name, {'page_obj': page_obj}) 
 
 
-@method_decorator(login_required, name='dispatch')        
+@method_decorator(login_required, name='dispatch')  
+@method_decorator(user_passes_test(user_is_superuser), name='dispatch')      
 class CashPayment_Delete(View):
     def get(self, request, payment_id):
         payment = get_object_or_404(Cash_Payment, id=payment_id) 
@@ -710,6 +751,7 @@ class CashPayment_Delete(View):
 #------------------------------ Journal ----------------------------------       
     
 @method_decorator(login_required, name='dispatch')
+@method_decorator(user_passes_test(user_is_superuser), name='dispatch')
 class JournalAdd(View):
     form_class = journal_form
     template_name = 'bhtapt_web/journelcreateform.html'
@@ -731,6 +773,7 @@ class JournalAdd(View):
             return render(request, self.template_name, {"form": form,'action':action})          
 
 @method_decorator(login_required, name='dispatch')
+@method_decorator(user_passes_test(user_is_superuser), name='dispatch')
 class JournalListView(View):
     template_name = 'bhtapt_web/journals.html'
     def get(self, request):
@@ -744,7 +787,8 @@ class JournalListView(View):
         page_obj = paginator.get_page(page_number)  # Get the page object
         return render(request, self.template_name, {'page_obj': page_obj}) 
     
-@method_decorator(login_required, name='dispatch')        
+@method_decorator(login_required, name='dispatch')  
+@method_decorator(user_passes_test(user_is_superuser), name='dispatch')
 class Journal_Delete(View):
     def get(self, request, payment_id):
         journal = get_object_or_404(Journel, id=payment_id) 
@@ -832,6 +876,7 @@ class Journal_Delete(View):
 #             return render(request, self.template_name, context) 
 
 @method_decorator(login_required, name='dispatch')
+@method_decorator(user_passes_test(user_is_superuser), name='dispatch')
 class account_ledger_view(View):
     template_name = 'bhtapt_web/ledger.html'
     success_url = reverse_lazy('appartment:list_rooms')
@@ -928,3 +973,195 @@ class account_ledger_view(View):
             }
 
         return render(request, self.template_name, context)
+    
+#----------------------------------------------------------------------
+
+#------------------------------Users Views ----------------------------
+@method_decorator(login_required, name='dispatch')
+@method_decorator(user_passes_test(user_is_superuser), name='dispatch')
+class AddUser(View):
+    template_name = 'bhtapt_web/adduser.html'
+    success_url = 'appartment:list_floors'
+    form_class = AddUsersForm
+
+    def get(self, request,user_id=None):
+        user = get_object_or_404(User, id=user_id) if user_id else None
+        form = self.form_class(instance=user)
+        action = 'Add User' if user_id is None else 'Update User'
+        return render(request, self.template_name, {"form": form,'action':action})
+    
+    def post(self,request,user_id=None):
+        user = get_object_or_404(User, id=user_id) if user_id else None
+        form = AddUsersForm(request.POST,instance=user)
+        if form.is_valid():
+            user = form.save(commit=False)
+            user.password = make_password(form.cleaned_data['password'])
+            form.save()
+            return redirect('appartment:users_list')
+        else:
+            return render(request, 'bhtapt_web/adduser.html',{'form':form,'action':'Add User'})     
+
+
+@method_decorator(login_required, name='dispatch')
+@method_decorator(user_passes_test(user_is_superuser), name='dispatch')
+class UserListView(View):
+    template_name = 'bhtapt_web/userslist.html'
+    def get(self, request):
+        users = User.objects.filter(user_type__in=['2','3']).order_by('-id')
+        paginator = Paginator(users, 10)
+        page_number = request.GET.get('page')  # Get the page number from the query string
+        page_obj = paginator.get_page(page_number)  # Get the page object
+        return render(request, self.template_name, {'page_obj': page_obj})          
+    
+@method_decorator(login_required, name='dispatch')
+@method_decorator(user_passes_test(user_is_superuser), name='dispatch')
+class UserEdit(View):
+    template_name = 'bhtapt_web/adduser.html'
+    success_url = 'appartment:users_list' 
+
+    def get(self, request, user_id=None):
+        if user_id:
+            user_instance = get_object_or_404(User, id=user_id)
+            form = AddUsersForm(instance=user_instance)
+            action = 'Update'
+        else:
+            return (reverse(self.success_url))
+        return render(request, self.template_name, {'form': form,'action':action})
+
+    def post(self, request, user_id=None):
+        if user_id:
+            user_instance = get_object_or_404(User, id=user_id)
+            form = AddUsersForm(request.POST, instance=user_instance)
+        else:
+            form = AddUsersForm(request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect(reverse(self.success_url))  # Redirect to the success URL
+        return render(request, self.template_name, {'form': form,'action':'Update'})       
+    
+
+@method_decorator(login_required, name='dispatch')  
+@method_decorator(user_passes_test(user_is_superuser), name='dispatch')
+class UserDeleteView(View):
+    def get(self, request, user_id):
+        account = get_object_or_404(User, id=user_id) 
+        # update_account(account)
+        account.delete()
+        return redirect(reverse_lazy('appartment:users_list'))      
+    
+
+@method_decorator(login_required, name='dispatch')  
+@method_decorator(user_passes_test(user_is_superuser), name='dispatch')
+class CashFlowView(View):
+    template_name = 'bhtapt_web/cashflow.html'
+    success_url = 'appartment:users_list' 
+    def get(self, request):
+        income = Transaction.objects.filter(account=Account.get_cash_account(),transaction_type="debit")
+        expense = Transaction.objects.filter(account = Account.get_cash_account(),transaction_type="credit")
+        return render(request,self.template_name)    
+    
+
+@method_decorator(login_required, name='dispatch')  
+@method_decorator(user_passes_test(user_is_superuser), name='dispatch')
+class TotalOutstanding(View):
+    template_name = 'bhtapt_web/outstanding.html'
+    success_url = 'appartment:users_list' 
+    def get(self, request):
+        bookings = Booking.objects.filter(status='2').order_by("room__room_number")
+        total_outstanding=0
+        for booking in bookings:
+            total_outstanding += booking.calculate_outstanding_amount()
+        return render(request,self.template_name,{'data':bookings,'total':total_outstanding,'date':datetime.today()})    
+
+@method_decorator(login_required, name='dispatch')  
+@method_decorator(user_passes_test(user_is_superuser), name='dispatch')
+class ReportsView(View):
+    template_name = 'bhtapt_web/reports.html'
+    success_url = 'appartment:users_list' 
+    def get(self, request):
+        report_items = [{'value':'checkin','name':'Checkin Report'},{'value':'checkout','name':'Checkout Report'},{'value':'advance','name':'Advance Report'} ,{'value':'outstanding','name':'Outstanding Amount Report'}]
+        reporting_value = request.GET.get('report', None)
+        start_date = request.GET.get('start',None)
+        end_date = request.GET.get('end',None)
+        if start_date and end_date:
+            starting_date = datetime.strptime(start_date, '%Y-%m-%d').date()
+            ending_date = datetime.strptime(end_date, '%Y-%m-%d').date() 
+        else:
+            starting_date,ending_date = None,None
+
+
+
+        if reporting_value == "checkin":
+            report = Payment.objects.filter(narration="Advance Payment").order_by('-id')
+            opening_balance = self.get_openingbalance(report,starting_date,'Advance Payment')
+            clossing_balance = self.get_clossingbalance(report,ending_date,'Advance Payment')
+            if start_date  and end_date:
+                report = self.date_filter(report,start_date,end_date)
+        elif reporting_value == "checkout":
+            report = Payment.objects.filter(narration="Checkout Amount").order_by('-id')
+            opening_balance = self.get_openingbalance(report,starting_date,'Checkout Amount')
+            clossing_balance = self.get_clossingbalance(report,ending_date,'Checkout Amount')
+            if start_date  and end_date:
+                report = self.date_filter(report,start_date,end_date)
+        elif reporting_value == "advance":
+            report = Payment.objects.filter(narration="Additional Payment").order_by('-id')
+            opening_balance = self.get_openingbalance(report,starting_date,'Additional Payment')
+            clossing_balance = self.get_clossingbalance(report,ending_date,'Additional Payment')
+            if start_date  and end_date:
+                report = self.date_filter(report,start_date,end_date)   
+        else:
+            report = None         
+        date_range = report.aggregate(start_date=Min('payment_date'), end_date=Max('payment_date'),totalamount = Sum('amount')) if report else {}
+        context ={'report_items':report_items,
+                  'reports':report,
+                  'reporting':reporting_value,
+                  'starting_date': date_range.get('start_date',None),
+                  'ending_date': date_range.get('end_date',None),
+                  'total_amount':date_range.get('totalamount',None),
+                  'opening_balance':opening_balance if report else 0,
+                  'closing_balance':clossing_balance if report else 0,
+                  'Report_Name': 'Check In Report' if reporting_value == "checkin" else 'CheckOut Report' if reporting_value == 'checkout' else 'Advance Report'
+                  } 
+        return render(request,self.template_name,context)     
+
+    def date_filter(self,queryset,start_date,end_date):
+        try:
+            starting_date = datetime.strptime(start_date, '%Y-%m-%d').date()
+            ending_date = datetime.strptime(end_date, '%Y-%m-%d').date()
+            report_data = queryset.filter(payment_date__range=(starting_date, ending_date))
+            return report_data
+        except Exception as e:
+            starting_date = 'invalid_date'
+            ending_date = 'invalid date'
+            print (e)
+            return queryset    
+
+    def get_clossingbalance(self, queryset, date=None,type=None):
+        # print(queryset)
+        if date is None:
+            date = Payment.objects.filter(narration = type).last().payment_date or None 
+        try:
+            if isinstance(date, str):
+                date = datetime.strptime(date, '%Y-%m-%d').date()
+            closing_balance = queryset.filter(payment_date__lte=date).aggregate(total=Sum('amount'))
+            return closing_balance.get('total', 0)
+        except Exception as e:
+            print(f"Error in get_closingbalance: {e}")
+            return 0
+
+    def get_openingbalance(self, queryset, date=None,type=None):
+        if date is None:
+            date = Payment.objects.filter(narration = type).first().payment_date or None 
+        try:
+            previous_day = date - timedelta(days=1)
+            opening_balance = self.get_clossingbalance(queryset, previous_day,type)
+            return opening_balance or 0
+        except Exception as e:
+            print(f"Error in get_openingbalance: {e}")
+            return 0
+
+
+        
+       
+        
+

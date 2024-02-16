@@ -33,32 +33,37 @@
 <div class="container-fluid pt-4 px-4">
     <div class="bg-light text-center rounded p-4">
         <div class="d-flex align-items-center justify-content-between mb-4">
-            <h6 class="mb-0">Floors</h6>
-            <a class="btn btn-sm btn-success p-2" href="{% url 'appartment:addfloor' %}">Add Floor</a>
+            <h6 class="mb-0">Users</h6>
+            <a class="btn btn-sm btn-success p-2" href="{% url 'appartment:add_user' %}">Add Users</a>
         </div>
         <div class="table-responsive">
             <table class="table text-start align-middle table-bordered table-hover mb-0" style="text-align: center;">
                 <thead class="text-center">
                     <tr class="text-dark " >
                         <th scope="col">SL No</th>
-                        <th scope="col">Floor Number</th>
-                        <th scope="col">No. of Rooms</th>
+                        <th scope="col">Name</th>
+                        <th scope="col">Username</th>
+                        <th scope="col">Email</th>
                         <th scope="col">Action</th>
+
                     </tr>
                 </thead>
                 <tbody class="text-center">
-                    {% for floor in page_obj %}
+                    {% for user in page_obj %}
 
                     <tr>
                         <td>{{ forloop.counter }}</td>
-                        <td>{{ floor.floor_no }}</td>
-                        <td>{{ floor.no_of_rooms }}</td>
+                        <td>{{ user.name }}</td>
+                        <td>{{ user.username }}</td>
+                        <td>{{ user.email }}</td>
+
                         <!-- <td>Jhon Doe</td> -->
                         <!-- <td><img src="{{ catagory.category_image.url }}" height="100px" width="100px" alt="" srcset=""></td> -->
-                        
-                        <td><a class="btn btn-sm btn-primary" href="{% url 'appartment:edit_floors' floor.id %}">Edit</a>
-                            <a class="btn btn-sm btn-danger" onclick="return confirm('Are you Sure..?')" href="{% url 'appartment:delete_floors' floor.id %}">Delete</a>
+                        <td>
+                            <a class="btn btn-sm btn-primary" href="{% url 'appartment:edit_user' user.id %}">Edit</a>
+                            <a class="btn btn-sm btn-danger" onclick="return confirm('Are you Sure..?')" href="{% url 'appartment:delete_user' user.id %}">Delete</a>
                         </td>
+                   
                     </tr>
                     {% endfor %}
                 </tbody>

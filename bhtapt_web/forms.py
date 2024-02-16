@@ -1,5 +1,5 @@
 from django import forms
-from .models import Floor,Category,Room,room_status,Booking,Account,Payment,Cash_Payment,Journel
+from .models import Floor,Category,Room,room_status,Booking,Account,Payment,Cash_Payment,Journel,User
 from datetime import date
 from django.utils.dateparse import parse_datetime
 from django.utils.formats import get_format
@@ -23,6 +23,39 @@ class FloorForm(forms.ModelForm):
             }),
         }
 
+class AddUsersForm(forms.ModelForm):
+    class Meta:
+        model = User
+        fields = ['name', 'email','username','user_type','password']
+        widgets = {
+            'name': forms.TextInput(attrs={
+                'class': 'form-control', 
+                'placeholder': 'Enter Name',
+                'required':True
+
+            }),
+            'email': forms.EmailInput(attrs={
+                'class': 'form-control', 
+                'placeholder': 'Enter Email',
+                'required':True
+            }),
+             'username': forms.TextInput(attrs={
+                'class': 'form-control', 
+                'placeholder': 'Enter Username',
+                'required':True
+
+            }),
+             'password': forms.PasswordInput(attrs={
+                'class': 'form-control', 
+                'placeholder': 'Enter Password',
+                'required':True
+
+            }),
+              'user_type': forms.Select(attrs={
+                  'class': 'form-select mb-3'
+                }),
+        }       
+
 class CategoryForm(forms.ModelForm):
     class Meta:
         model=Category
@@ -39,6 +72,7 @@ class CategoryForm(forms.ModelForm):
                 'placeholder': 'Enter Description',
                 'required':True
             }),
+
         }
 
   

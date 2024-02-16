@@ -8,7 +8,7 @@
 <!-- <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css"> -->
 <style>
     @media print {
-  .footer ,.back-to-top,.navbar,.items{
+  .footer ,.back-to-top,.navbar,.items,.btn{
     display: none;
   }
 }
@@ -46,36 +46,43 @@
 <div class="container-fluid pt-4 px-4">
 
     <select class="form-select mb-3" aria-label="Default select example" id="accountSelect" name="account">
-        <option value="" selected>Select Account</option>
-        {% for accountss in accounts %}
-        <option value="{{ accountss.id }}" {% if account.id == accountss.id %} selected {% endif %}>{{ accountss.name }}</option>
+        <option value="" selected>Select Report</option>
+        {% for report in report_items %}
+        <option value="{{ report.value }}" {% if reporting == report.value %} selected {% endif %}> {{ report.name }}</option>
         {% endfor %}
+        <!-- <option value="outstanding">Outstanding Report</option> -->
+
     </select>
     
-    <script>
+    <script type="text/javascript">
         document.getElementById('accountSelect').addEventListener('change', function() {
-            var accountId = this.value;
-            if(accountId) {
-                window.location.href = "{% url 'appartment:ledger' %}?account=" + accountId;
+            var reportvalue = this.value
+            if (reportvalue === 'outstanding') {
+                window.location.href = "{% url 'appartment:outstanding' %}";
+            } else if (reportvalue) {
+                window.location.href = "{% url 'appartment:reports' %}?report=" + reportvalue;
             }
         });
     </script>
     
-    {% if account %}
+    
+    {% if reporting %}
     <div class="bg-light text-center rounded p-4">
         <div class="items">
         <label for=""> START DATE </label>&nbsp;
         <input type="date" id="start_date" class="'class': 'form-control'," style="width: 100x;"> &nbsp;
           <label for=""> END DATE</label>&nbsp;
             <input type="date" id="end_date" class="'class': 'form-control'," style="width: 100x;">
-            <a id="filter_btn" data-url="{% url 'appartment:ledger' %}?account={{account.id}}" class="btn btn-primary ms-2">Filter</a>  <a href="{% url 'appartment:ledger' %}?account={{account.id}}&all" class="btn btn-danger ms-2">All</a>  <a  class="btn btn-warning ms-2" onclick="window.print()">Print</a> 
+            <a id="filter_btnr" data-url="{% url 'appartment:reports' %}?report={{reporting}}" class="btn btn-primary ms-2">Filter</a>  <a href="{% url 'appartment:reports' %}?report={{reporting}}" class="btn btn-danger ms-2">All</a>  <a  class="btn btn-warning ms-2" onclick="window.print()">Print</a> 
+            <a id="blhide" class="btn btn-success ms-2">Balance Hide</a> 
+            <a id="blshow" style="display: none;" class="btn btn-success ms-2 ">Balance Show</a> 
+
 
     </div>
    
 
         <div class="table-responsive">
-            <h6 class="text-dark p-4">{{account.name}} from {{starting_date}} to {{ending_date}} </h6>
-            
+            <h6 class="text-dark p-4">{{Report_Name}}  from {{starting_date}} to {{ending_date}} </h6>
         <!-- <h6  class="text-end p-3">Opening Balance: <span class="text-danger">{{ opening_balance }}</span> </h6> -->
 
 
@@ -85,55 +92,39 @@
                 <thead class="text-center">
                     <tr class="text-dark " >
                         <th scope="col">SL No</th>
-                        <th scope="col">Transaction No</th>
+                        <th scope="col">Entry No</th>
+                        <th scope="col">Reciept No</th>
                         <th scope="col">Date</th>
-                        <th scope="col">Particulars</th>
-                        <th scope="col">Type</th>
-                        <th scope="col">Debit</th>
-                        <th scope="col">Credit</th>
-                        <th scope="col">Balance</th>
+                        <th scope="col">Customer Name</th>
+                        <th scope="col">Amount</th>
+        
 
                     </tr>
                 </thead>
                 <tbody class="text-center">
-                    {% if filter %}
-                    <tr>
+                    <tr class="balance">
                         <th colspan="5" class="text-danger">Opening Balance</th>
                         <!-- <td></td>
                         <td></td>
                         <td></td>
                         <td></td> -->
-                        {% if opening_balance > 0 %}
-                        <td>{{positive_openingbalance}}</td>
-                        {% else %} <td></td>{% endif%}
-                        {% if opening_balance < 0 %}
-                        <td>{{positive_openingbalance}}</td>
-                        {% else %} <td></td>{% endif%}
-                        <td>{{opening_balance}}</td>
+                        
+                        <td><b class="text-danger">{{opening_balance}}</b></td>
+                        <!-- <td>{{closing_balance}}</td> -->
+
 
 
                     </tr>
-                    {% endif %}
-                    {% for transaction in ledger_data %}
+                  
+                    {% for report in reports %}
 
                     <tr>
                         <td>{{ forloop.counter }}</td>
-                        <td>{{ transaction.transaction_id }}</td>
-                        <td>{{ transaction.date}}</td>
-                        <td>{{ transaction.description}}</td>
-                        <td>{{ transaction.type}}</td>
-
-                        {% if transaction.debit != 0 %}
-                        <td>{{ transaction.debit }}</td>
-                        {% else %}
-                        <td></td>
-                        {% endif %}
-                        {% if transaction.credit != 0 %}
-                        <td>{{ transaction.credit }}</td>
-                        {% else %}
-                        <td></td>
-                        {% endif %}
-                        <td>{{ transaction.balance}}</td>
+                        <td>{{ report.booking.id }}</td>
+                        <td>{{ report.id}}</td>
+                        <td>{{ report.payment_date}}</td>
+                        <td>{{ report.booking.customer_name}}</td>
+                        <td>{{ report.amount}}</td>
 
                     </tr>
                     {% endfor %}
@@ -141,12 +132,24 @@
                         <td></td>
                         <td></td>
                         <td></td>
-                        <td></td>
-                        <td></td>
-                        <th>{{total_debits}}</th>
-                        <th>{{total_credits}}</th>
-                        <th>{{ending_balance}}</th>
+                        <th></th>
+                        <th>Total Amount</th>
+                        <th>{{total_amount}}</th>
                         
+
+                    </tr>
+                    <tr class="balance">
+                        <th colspan="5" class="text-danger">Closing Balance</th>
+                        <!-- <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td> -->
+                        <!-- <td></td>
+                        <td></td> -->
+                        
+                        <td><b class="text-danger">{{closing_balance}}</b></td>
+
+
 
                     </tr>
                 </tbody>

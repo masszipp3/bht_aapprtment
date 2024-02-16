@@ -57,6 +57,8 @@ urlpatterns=[
 #------------------------------Login / Logout ---------------------------- 
 
     path('login',UserLogin.as_view(),name='login'),
+    path('logout',UserLogout.as_view(),name='logout'),
+
 
 #------------------------------Account / Cash Reciepts ----------------------------
  
@@ -77,7 +79,7 @@ urlpatterns=[
     path('cash_payments/<int:payment_id>/print',recieptcashpayment.as_view(),name='cashpayment_print'),
 
 
-#------------------------------ Journal  ----------------------------
+#------------------------------ Journal  ---------------------------------
 
     path('journal/add',JournalAdd.as_view(),name='add_journal'),
     path('journal/list',JournalListView.as_view(),name='journals'),
@@ -89,6 +91,28 @@ urlpatterns=[
 #------------------------------ Ledger  ----------------------------
 
     path('ledger',account_ledger_view.as_view(),name='ledger'),
+
+
+#------------------------------ User Management  ----------------------------
+
+    path('users/add',AddUser.as_view(),name='add_user'),
+    path('users/<int:user_id>/edit',AddUser.as_view(),name='edit_user'),
+    path('users/<int:user_id>/delete',UserDeleteView.as_view(),name='delete_user'),
+    path('users/list',UserListView.as_view(),name='users_list'),
+
+
+#------------------------------ Cash Flow  ----------------------------
+
+    path('cashflow',CashFlowView.as_view(),name='cashflow'),
+
+
+#------------------------------  Oustanding  ----------------------------
+
+    path('outstanding',TotalOutstanding.as_view(),name='outstanding'),
+
+#------------------------------  Reports  ----------------------------
+
+    path('reports',ReportsView.as_view(),name='reports'),
 
 
 

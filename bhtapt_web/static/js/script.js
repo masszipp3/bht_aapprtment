@@ -282,6 +282,33 @@ $('#filter_btn').on('click',function(){
 })
 
 
+$('#filter_btnr').on('click',function(){
+    var url = $(this).data('url')
+    var start_date =$('#start_date').val()
+    var end_date = $('#end_date').val()
+    if(start_date && end_date)
+       if (url.includes('?'))
+       window.location=url+"&start="+start_date+"&end="+end_date;
+       else
+       window.location=url+"?start="+start_date+"&end="+end_date;
+
+
+})
+
+$('#blhide').on('click',function(){
+    $(this).hide()
+    $('.balance').hide()
+    $('#blshow').show()
+})
+
+$('#blshow').on('click',function(){
+    $(this).hide()
+    $('.balance').show()
+    $('#blhide').show()
+})
+
+
+
 
 $('#id_booking_type').on('change',function(){
     var value = $(this).val()

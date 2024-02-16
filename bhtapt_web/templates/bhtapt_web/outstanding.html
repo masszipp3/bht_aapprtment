@@ -1,7 +1,13 @@
 {% extends 'bhtapt_web/index.html' %}
 
 {% block nav %}
-
+<style>
+    @media print {
+  .footer,.btn ,.back-to-top,.navbar,.items,.dbhide{
+    display: none;
+  }
+}
+</style>
 <nav class="navbar bg-light navbar-light">
     <a href="{% url 'appartment:dashboard' %}" class="navbar-brand mx-4 mb-3">
         <h3 class="text-primary"><i class="fa fa-hashtag me-2"></i>Bin Hariz</h3>
@@ -33,36 +39,49 @@
 <div class="container-fluid pt-4 px-4">
     <div class="bg-light text-center rounded p-4">
         <div class="d-flex align-items-center justify-content-between mb-4">
-            <h6 class="mb-0">Floors</h6>
-            <a class="btn btn-sm btn-success p-2" href="{% url 'appartment:addfloor' %}">Add Floor</a>
+            <h6 class="mb-0">Outstanding - <span class="text-success">{{date}}</span></h6>  <a  class="btn btn-warning ms-2" onclick="window.print()">Print</a> 
+            <!-- <a class="btn btn-sm btn-success p-2" href="{% url 'appartment:dashboard' %}">Add Booking</a> -->
         </div>
         <div class="table-responsive">
             <table class="table text-start align-middle table-bordered table-hover mb-0" style="text-align: center;">
                 <thead class="text-center">
                     <tr class="text-dark " >
-                        <th scope="col">SL No</th>
-                        <th scope="col">Floor Number</th>
-                        <th scope="col">No. of Rooms</th>
-                        <th scope="col">Action</th>
+                        <th scope="col">Room</th>
+                        <th scope="col">Entry No</th>
+                        <th scope="col">Customer</th>
+                        <!-- <th scope="col">Type</th> -->
+                        <th scope="col">Check IN</th>
+                        <th scope="col">Outstanding</th>
+                        <th class="dbhide" scope="col"></th>
                     </tr>
                 </thead>
                 <tbody class="text-center">
-                    {% for floor in page_obj %}
+                    {% for booking in data %}
 
                     <tr>
-                        <td>{{ forloop.counter }}</td>
-                        <td>{{ floor.floor_no }}</td>
-                        <td>{{ floor.no_of_rooms }}</td>
+                        <td>{{ booking.room.room_number}}</td>
+                        <td>{{ booking.id }}</td>
+                        <td>{{ booking.customer_name }}</td>
+                        <!-- <td>{{ booking.get_status_display}}</td> -->
+                        <td>{{ booking.check_in_date }}</td>
+                        <td>{{ booking.calculate_outstanding_amount }}</td>
+
+
+
+                        
+
+
+
                         <!-- <td>Jhon Doe</td> -->
                         <!-- <td><img src="{{ catagory.category_image.url }}" height="100px" width="100px" alt="" srcset=""></td> -->
                         
-                        <td><a class="btn btn-sm btn-primary" href="{% url 'appartment:edit_floors' floor.id %}">Edit</a>
-                            <a class="btn btn-sm btn-danger" onclick="return confirm('Are you Sure..?')" href="{% url 'appartment:delete_floors' floor.id %}">Delete</a>
+                        <td class="dbhide"><a class="btn btn-sm btn-primary" href="{% url 'appartment:bookingdetail' booking.id %}">Details</a>
                         </td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
+            <h6 class="text-end p-3">Total Outstanding: <span class="text-danger">{{ total }}</span> </h6>
         </div>
     </div>
 </div>
@@ -78,7 +97,6 @@
         <a class="" href="?page={{ page_obj.next_page_number }}"><i class="fa fa-arrow-circle-right" style="font-size: 35px;"></i></a>
     {% endif %}
 </div>  <br>
-
 
 
 

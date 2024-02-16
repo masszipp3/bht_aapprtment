@@ -26,18 +26,11 @@
       </div>
   </div>
   <div class="navbar-nav w-100">
-    <a href="{% url 'appartment:dashboard' %}" class="nav-item nav-link active"><i
-      class="fa fa-tachometer-alt me-2"></i>Dashboard</a>
-<a href="{% url 'appartment:list_rooms' %}" class="nav-item nav-link"><i class="fa fa-th me-2"></i>Rooms</a>
-<a href="{% url 'appartment:list_floors' %}" class="nav-item nav-link "><i class="fa fa-keyboard me-2"></i>Floors</a>
-<a href="{% url 'appartment:list_category' %}" class="nav-item nav-link "><i class="fa fa-table me-2"></i>Categories</a>
-<a href="{% url 'appartment:cashbook' %}" class="nav-item nav-link "><i class="fa fa-book me-2"></i>Cash Book</a>
-<a href="{% url 'appartment:bookingslist' %}" class="nav-item nav-link "><i class="fa fa-chart-bar me-2"></i>Bookings</a>
-<a href="{% url 'appartment:cashreciept_list' %}" class="nav-item nav-link"><i class="fa fa-receipt me-2"></i>Cash Reciepts</a>
-<a href="{% url 'appartment:accounts_list' %}" class="nav-item nav-link"><i class="fa fa-address-book me-2"></i>Accounts</a>
-<a href="{% url 'appartment:cash_payments' %}" class="nav-item nav-link"><i class="fa fa-credit-card me-2"></i>Cash Payments</a>
-<a href="{% url 'appartment:journals' %}" class="nav-item nav-link "><i class="fa fa-random me-2"></i>Journal</a>
-<a href="{% url 'appartment:ledger' %}" class="nav-item nav-link"><i class="fa fa-archive me-2"></i>Ledger</a>
+    {% for item in menu_items %}
+        <a href="{% url item.url %}" class="nav-item nav-link {% if current_url == item.url_name %}active{% endif %}">
+            <i class="fa {{ item.icon }} me-2"></i>{{ item.name }}
+        </a>
+    {% endfor %}
 
       <!-- <a href="chart.html" class="nav-item nav-link"><i class="fa fa-chart-bar me-2"></i>Cash Payments</a> -->
 
@@ -55,7 +48,12 @@
 <style>
 @media print {
   body {
-    font-size: 10px;
+    font-size: 8px;
+    color: black !important;
+  }
+  hr {
+    border: 1px solid black; /* This sets the color of hr to black */
+    background-color: black; /* Ensures the entire line is black, not just the border */
   }
 }
 @media print {
@@ -124,6 +122,10 @@
                   <dd>{{payment.booking.address}}</dd>
                   <dt>Phone</dt>
                   <dd>{{payment.booking.mobile}}</dd>
+                  <dt>ID proof</dt>
+                  <dd>{{payment.booking.get_id_proof_display}}</dd>
+                  <dt>ID No</dt>
+                  <dd>{{payment.booking.id_no}}</dd>
                   
                 </dl>
                 <dl class="dl-horizontal justify-content-end ps-5">
@@ -302,17 +304,22 @@
             </div>
           </div>
           <div class="col-xs-6" >
-            <hr width="50%">
+            <hr width="50%" style="font-weight: bolder; color: black !important;background-color: black !important; 
+                 height: 1px;
+                 border: 2;">
+
             <p> For Binharis</p> 
              </div>
              <div class="col-xs-6" >
-                 <hr width="50%">
+                 <hr width="50%" style="font-weight: bolder; color: black !important;background-color: black !important; 
+                 height: 1px;
+                 border: 2;">
                  <p>Customer Signature</p> 
                   </div>
           
 
       </div>
-      <div class="invoice-footer">
+      <div class="invoice-footer mt-5">
         Thank you for choosing our services.,We hope to see you again soon.
         <strong>~Bin Hariz Flats~</strong>
       </div>

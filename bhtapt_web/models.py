@@ -1,7 +1,9 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.db.models import Sum
-from datetime import timedelta
+from datetime import timedelta,datetime
+from django.utils import timezone
+from dateutil.relativedelta import relativedelta
 
 # Create your models here.
 
@@ -134,7 +136,17 @@ class Account(models.Model):
     def get_cash_account():
         return Account.objects.get_or_create(name="Cash Account", account_type="cash")[0]
 
-
+    @staticmethod
+    def get_checkoutaccount():
+        return Account.objects.get_or_create(name="Checkout Account", account_type="cash")[0]
+    
+    @staticmethod
+    def get_checkin_Account():
+        return Account.objects.get_or_create(name="CheckIN Account", account_type="cash")[0]
+    
+    @staticmethod
+    def get_advanceAccount():
+        return Account.objects.get_or_create(name="CheckIN Avdance Account", account_type="cash")[0]
 class Booking(models.Model):
     customer_name = models.CharField(max_length=100,null=True,blank=True)
     booking_no = models.CharField(max_length=100,null=True,blank=True)
@@ -179,14 +191,41 @@ class Booking(models.Model):
                 narration='Advance Payment',
                 payment_date = self.check_in_date,
                 to_account = Account.get_cash_account(),
+                from_account = Account.get_checkin_Account(),
                 room = self.room  if self.room else None
             )
         if self.room:
             self.room.room_status = '2'
             self.room.save()    
 
+    def calculate_outstanding_amount(self):
+        now = datetime.now()  # Get the current local time
+        check_in = self.check_in_date.replace(tzinfo=None)
+        time_diff = now - check_in
+        total_amount = Payment.objects.filter(booking=self).aggregate(total=Sum('amount'))['total'] or 0
 
-class Payment(models.Model):
+        if self.booking_type == '1':  # Daily
+            # Calculate full days stayed + 1 for any part of a day
+            days_stayed = time_diff.days + (1 if time_diff > timedelta(days=time_diff.days) else 0)
+            outstanding_amount = days_stayed * self.rate
+
+        elif self.booking_type == '3':  # Monthly
+            # Calculate full months stayed, add one month for any part of a month
+            months_stayed = relativedelta(now, check_in).months + relativedelta(now, check_in).years * 12
+            months_stayed += 1 if time_diff > timedelta(days=months_stayed * 30) else 0
+            outstanding_amount = months_stayed * self.rate
+
+        elif self.booking_type == '2':  # Yearly
+            # Calculate full years stayed, add one year for any part of a year
+            years_stayed = relativedelta(now, check_in).years
+            years_stayed += 1 if time_diff > timedelta(days=years_stayed * 365) else 0
+            outstanding_amount = years_stayed * self.rate
+        else:
+            outstanding_amount = 0
+
+        return outstanding_amount-total_amount if total_amount else outstanding_amount
+
+class Payment(models.Model): #cashreciept
     booking = models.ForeignKey(Booking, on_delete=models.CASCADE,null=True,blank=True,related_name='payment_booking')
     room = models.ForeignKey(Room, on_delete=models.SET_NULL,null=True,blank=True,related_name='payment_room')
     amount = models.DecimalField(max_digits=10, decimal_places=3)
