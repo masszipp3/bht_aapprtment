@@ -135,8 +135,8 @@
                   <dd>{{booking.check_in_date}}</dd>
                   <dt>Duration </dt>
                   <dd>{{booking.duration}}</dd>
-                  <dt>Booking Type</dt>
-                  <dd class="mono">{{booking.get_booking_type_display}}</dd>
+                  <dt>Room Type</dt>
+                  <dd class="mono">{{booking.room.category.category_name}}</dd>
                   {% if booking.status == '3' %}
                   <dt>Date Of Depature </dt>
                   <dd> {{ booking.check_out_date }}    
@@ -245,9 +245,16 @@
             <p> For Binharis</p> 
              </div>
              <div class="col-xs-6" >
-                 <hr width="50%">
-                 <p>Customer Signature</p> 
-                  </div>
+              <div class="div" style="text-align: right;
+              display: flex;
+              justify-content: flex-end;
+              flex-direction: column;
+              align-items: flex-end;">
+                <hr width="50%" style="font-weight: bolder; color: black !important;background-color: black !important; 
+                height: 1px;
+                border: 2;">
+                <p>Customer Signature</p> 
+              </div>
         </div>
 
 

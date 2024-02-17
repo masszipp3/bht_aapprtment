@@ -49,8 +49,10 @@
         
 
             <div>
+                {% if user.is_superuser %}
                 <a class="btn btn-sm btn-success" href="{% url 'appartment:edit_room' room.id %}">Edit</a>
                 <a class="btn btn-sm btn-danger" onclick="return confirm('Are you Sure..?')" href="{% url 'appartment:delete_room' room.id %}">Delete</a>
+                {% endif %}
             </div>
         </div>
         <style>

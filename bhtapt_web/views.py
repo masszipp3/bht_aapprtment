@@ -1139,7 +1139,7 @@ class ReportsView(View):
     def get_clossingbalance(self, queryset, date=None,type=None):
         # print(queryset)
         if date is None:
-            date = Payment.objects.filter(narration = type).last().payment_date or None 
+            date = Payment.objects.filter(narration = type).order_by('-payment_date').first().payment_date or None 
         try:
             if isinstance(date, str):
                 date = datetime.strptime(date, '%Y-%m-%d').date()
@@ -1151,7 +1151,7 @@ class ReportsView(View):
 
     def get_openingbalance(self, queryset, date=None,type=None):
         if date is None:
-            date = Payment.objects.filter(narration = type).first().payment_date or None 
+            date = Payment.objects.filter(narration = type).order_by('payment_date').first().payment_date or None 
         try:
             previous_day = date - timedelta(days=1)
             opening_balance = self.get_clossingbalance(queryset, previous_day,type)
