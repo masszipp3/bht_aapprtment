@@ -308,7 +308,105 @@ $('#blshow').on('click',function(){
 })
 
 
+$(function() {
+    var $mobileInput = $('#id_mobile');
+    var $customerName = $('#id_customer_name');
+    var $address = $('#id_address');
+    var $country = $('#id_country');
+    var $idProof = $('#id_id_proof');
+    var $idNo = $('#id_id_no');
 
+    function resetFields() {
+        $customerName.val(null);
+        $address.val(null);
+        $country.val(null);
+        $idProof.val(null);
+        $idNo.val(null);
+    }
+
+    function debounce(func, wait, immediate) {
+        var timeout;
+        return function() {
+            var context = this, args = arguments;
+            var later = function() {
+                timeout = null;
+                if (!immediate) func.apply(context, args);
+            };
+            var callNow = immediate && !timeout;
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+            if (callNow) func.apply(context, args);
+        };
+    }
+
+    var handleInput = debounce(function() {
+        var value = $mobileInput.val().trim();
+        let url = $mobileInput.siblings('label').first().data('url');
+
+        if (value.length > 4) {
+            $.ajax({
+                type: 'GET',
+                url: url,
+                data: { 'phone': value },
+                success: function(response) {
+                    console.log(response);
+                    $customerName.val(response.customer_name);
+                    $address.val(response.address);
+                    $country.val(response.country);
+                    $idProof.val(response.id_proof);
+                    $idNo.val(response.id_no);
+                },
+                error: function(xhr) {
+                    console.error(xhr.responseText);
+                    resetFields();
+                }
+            });
+        } else {
+            resetFields();
+        }
+    }, 250); // Adjust debounce time as needed
+
+    $mobileInput.on('input', handleInput);
+});
+
+$('#chang_roombtn').on('click',function(){
+        let url = $(this).data( "url" );
+        let room = $('#current_room') || null
+        let change_room = $('#change_room') || null
+        let booking = $('#booking') || null
+        let csrftoken = $('[name=csrfmiddlewaretoken]').val();
+        console.log({
+            'booking': booking.val(),
+            'current_room':room.val(),
+            'change_room':change_room.val()
+        })
+
+        if (room != null && change_room != null && booking != null) {
+            $.ajax({
+                type: 'POST',
+                url: url,
+                headers: {'X-CSRFToken': csrftoken},
+                data: {
+                    'booking': booking.val(),
+                    'current_room':room.val(),
+                    'change_room':change_room.val()
+                },
+                success: function (response) {
+                    if (response.status == 'success'){
+                        window.location.reload()
+                    }
+                    else{
+                        alert('updation Failed')
+                        window.location.reload()
+                    }
+                },
+                error: function (xhr, status, error) {
+                    console.error(xhr.responseText);
+                    alert('updation Failed')
+                }
+            });
+        }
+})
 
 $('#id_booking_type').on('change',function(){
     var value = $(this).val()
