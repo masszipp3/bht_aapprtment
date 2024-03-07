@@ -8,6 +8,12 @@
   .footer ,.back-to-top,.navbar,.items{
     display: none;
   }
+  table{
+    font-size: 12px;
+  }
+  h6{
+    font-size: 14px;
+  }
 }
 </style>
 
@@ -79,6 +85,7 @@
                         <th scope="col">Transaction id</th>
                         <th scope="col">Type</th>
                         <th scope="col">Room</th>
+                        <th scope="col">Account</th>
                         <th scope="col">Particulars</th>
                         <th scope="col">Debit</th>
                         <th scope="col">Credit</th>
@@ -109,6 +116,7 @@
                         <td></td>
                         {% endif %}
 
+                       
                         {% if transaction.payment %}
                         <td>{% if transcation.payment.booking.room %}{{ transaction.payment.booking.room.room_number}}{% else %} {{ transaction.payment.room.room_number}} {% endif %}</td>
                         {% elif transaction.cash_payment %}
@@ -118,6 +126,17 @@
                         {% else %}
                         <td></td>
                         {% endif %}
+
+                        {% if transaction.payment %}
+                        <td>{{ transaction.payment.from_account}} </td>
+                        {% elif transaction.cash_payment %}
+                        <td>{{ transaction.cash_payment.to_account}}</td>
+                        {% elif transaction.journal %}
+                        <td>{% if transaction.jounal.from_account != transaction.account %}{{ transaction.jounal.from_account}} {% else %} {{transaction.journal.to_account}}{% endif %}</td>
+                        {% else %}
+                        <td></td>
+                        {% endif %}
+
                         
                        
                         <td>{{ transaction.transaction_remark}}</td>

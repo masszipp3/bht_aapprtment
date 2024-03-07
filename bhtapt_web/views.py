@@ -4,8 +4,8 @@ from django.urls import reverse,reverse_lazy
 from django.views import View
 from .forms import *
 from django.core.paginator import Paginator
-from django.http import JsonResponse
-from .  models import Payment,Transaction,Account,Cash_Payment
+from django.http import HttpResponse, JsonResponse
+from .  models import Payment,Transaction,Account,Cash_Payment,Customer
 from decimal import Decimal
 from datetime import timedelta, datetime
 from django.contrib.auth import authenticate, login,logout
@@ -187,7 +187,7 @@ class RoomDeleteView(View):
         return redirect(reverse_lazy('appartment:list_rooms'))        
     
 @method_decorator(login_required, name='dispatch')
-@method_decorator(user_passes_test(user_is_superuser), name='dispatch')
+# @method_decorator(user_passes_test(user_is_superuser), name='dispatch')
 class list_rooms(View):
     def get(self, request):
         category_room_counts = Room.objects.values('category__category_name').annotate(
@@ -198,7 +198,7 @@ class list_rooms(View):
         room_list = Room.objects.all().order_by('-id') 
         paginator = Paginator(room_list, 10) 
         total_room_count = Room.objects.count()
-        vacant_room_count = Room.objects.filter(room_status='1').count()
+        vacant_room_count = Room.objects.filter(room_status__in=['1','4']).count()
         occupied_room_count = Room.objects.filter(room_status='2').count()
         page_number = request.GET.get('page')  # Get the page number from the query string
         page_obj = paginator.get_page(page_number)  # Get the page object
@@ -356,15 +356,16 @@ class bookingsList(View):
         paginator = Paginator(booking_list, 10) 
         page_number = request.GET.get('page')  # Get the page number from the query string
         page_obj = paginator.get_page(page_number)  # Get the page object
-        return render(request, self.template_name, {'page_obj': page_obj})          
+        return render(request, self.template_name, {'page_obj': page_obj,'query_params': request.GET})          
 
 @method_decorator(login_required, name='dispatch')
 class bookingdetail(View):
     template_name = 'bhtapt_web/booking_details.html'
     def get(self, request,booking_id):
         booking_list = Booking.objects.get(id=booking_id,soft_delete=False)
+        rooms = Room.objects.filter(room_status='1').values('room_number','id')
         payments= Payment.objects.filter(booking=booking_list)
-        return render(request, self.template_name, {'booking': booking_list,'payments':payments})          
+        return render(request, self.template_name, {'booking': booking_list,'payments':payments,'rooms':rooms})          
 
 @method_decorator(login_required, name='dispatch')
 @method_decorator(user_passes_test(user_is_superuser), name='dispatch')
@@ -430,10 +431,7 @@ class RecieptEdit(View):
             reciept.amount = Decimal(amount) 
             reciept.save(update_fields=['amount'])
             try:
-                 transaction = Transaction.objects.get(payment=reciept) 
-                 transaction.amount=Decimal(amount)
-                 transaction.save()
-
+                 transaction = Transaction.objects.filter(payment=reciept).update(amount=Decimal(amount)) 
             except Transaction.DoesNotExist:
                 transaction = Transaction.objects.create(payment=reciept,amount=amount,booking=reciept.booking,
                                                          transaction_remark=reciept.narration,transaction_type='debit',account=Account.objects.get_or_create(name="Cash Account", account_type="cash")[0],
@@ -514,11 +512,11 @@ class CashBookView(View):
         start_date = request.GET.get('start',None)
         end_date = request.GET.get('end', None)
         if date_str:
-            current_date = datetime.strptime(date_str, '%b. %d, %Y').date()
+            current_date = datetime.strptime(date_str, '%Y-%m-%d').date()
         else :
             current_date=date.today()
         cash_account = Account.get_cash_account()
-        # Calculate opening and closing balances
+        # Calculate opening and closing balances    
         opening_balance = Transaction.get_opening_balance_for_date(current_date,cash_account)
         closing_balance = Transaction.get_closing_balance_until_date(current_date,cash_account)
 
@@ -554,8 +552,8 @@ class CashBookView(View):
             'closing_balance': closing_balance,
             'transactions': transactions,
             'current_date': current_date,
-            'previous_date': previous_date,
-            'next_date': next_date,
+            'previous_date': str(previous_date),
+            'next_date':str(next_date) ,
             'filter':filter,
             'daily_balances': daily_balances
         }
@@ -574,7 +572,7 @@ class CashRecieptListView(View):
         paginator = Paginator(reciepts, 10) 
         page_number = request.GET.get('page')  # Get the page number from the query string
         page_obj = paginator.get_page(page_number)  # Get the page object
-        return render(request, self.template_name, {'page_obj': page_obj}) 
+        return render(request, self.template_name, {'page_obj': page_obj,'query_params': request.GET}) 
     
 @method_decorator(login_required, name='dispatch')
 class RoomDetails(View):
@@ -727,7 +725,7 @@ class CashPaymentListView(View):
         paginator = Paginator(payments, 10)
         page_number = request.GET.get('page')  # Get the page number from the query string
         page_obj = paginator.get_page(page_number)  # Get the page object
-        return render(request, self.template_name, {'page_obj': page_obj}) 
+        return render(request, self.template_name, {'page_obj': page_obj,'query_params': request.GET }) 
 
 
 @method_decorator(login_required, name='dispatch')  
@@ -884,6 +882,8 @@ class account_ledger_view(View):
         accounts = Account.objects.all().order_by('-id')
         date_str = request.GET.get('date',None)
         start_date = request.GET.get('start',None)
+        show_opening = request.GET.get('show_opening',None)
+
         starting_balance=0
         opening_balance =0
         filter=False
@@ -901,7 +901,7 @@ class account_ledger_view(View):
 
                     # Calculate the opening balance for the start date
                     previous_day = starting_date - timedelta(days=1)
-                    starting_balance = Transaction.get_closing_balance_until_date(previous_day, account)
+                    starting_balance = 0 if show_opening else Transaction.get_closing_balance_until_date(previous_day, account)
                     opening_balance = starting_balance
 
                     transactions = Transaction.objects.filter(account=account, date__gte=starting_date, date__lte=ending_date).order_by('date')
@@ -919,6 +919,7 @@ class account_ledger_view(View):
             running_balance = starting_balance
             total_credits = 0
             total_debits = 0
+            account_transaction=None
 
             for transaction in transactions:
                 # Determine the type of transaction
@@ -927,10 +928,17 @@ class account_ledger_view(View):
                 elif transaction.cash_payment:
                     trans_type = 'Cash Payment'
                 elif transaction.payment:
-                    trans_type = 'Cash Reciept'
+                    trans_type = 'Cash Reciept' 
                 else:
                     trans_type = 'Other'
-
+                
+                account_transaction = self.get_appropiate_ledger(transaction,trans_type=trans_type)
+                # if transaction.cash_payment and transaction.cash_payment.to_account:
+                #     account_transaction = transaction.cash_payment.to_account.name
+                # if transaction.journal and transaction.journal.from_account is not transaction.account:
+                #     account_transaction = transaction.journal.from_account
+                # if transaction.journal and transaction.journal.to_account is not transaction.account:
+                #     account_transaction = transaction.journal.to_account
                 # Update running balance, total credits, and total debits
                 if transaction.transaction_type == 'credit':
                     running_balance -= transaction.amount
@@ -951,7 +959,8 @@ class account_ledger_view(View):
                     'description': transaction.transaction_remark,
                     'debit': debit,
                     'credit': credit,
-                    'balance': running_balance
+                    'balance': running_balance,
+                    'account_transaction':account_transaction or None
                 })
 
             context = {
@@ -965,7 +974,8 @@ class account_ledger_view(View):
                 'positive_openingbalance':abs(opening_balance),
                 'ending_date':ending_date,
                 'opening_balance': opening_balance or 0,
-                'filter' : filter 
+                'filter' : filter ,
+                'show_balance': show_opening,
             }
         else:
             context = {
@@ -974,6 +984,20 @@ class account_ledger_view(View):
 
         return render(request, self.template_name, context)
     
+    def get_appropiate_ledger(self,ledger,trans_type):
+        if trans_type == 'Journal':
+            ledger_account = Transaction.objects.filter(journal=ledger.journal).exclude(id=ledger.id)
+        elif trans_type == 'Cash Payment':
+            ledger_account = Transaction.objects.filter(cash_payment=ledger.cash_payment).exclude(id=ledger.id)
+        elif  trans_type == 'Cash Reciept':
+            ledger_account = Transaction.objects.filter(payment=ledger.payment).exclude(id=ledger.id)
+        else:
+            ledger_account=None
+
+        if not ledger_account:
+            return None
+        return ledger_account[0].account
+
 #----------------------------------------------------------------------
 
 #------------------------------Users Views ----------------------------
@@ -1161,7 +1185,94 @@ class ReportsView(View):
             return 0
 
 
+@method_decorator(login_required, name='dispatch')
+class GetCustomer(View):
+    def get(self, request):
+           # Get the date from the request or default to today
+        if query := request.GET.get('phone', None):
+            try:
+                customer =  Customer.objects.get(mobile=query)
+                data = customer.__dict__
+                data['id_display'] = customer.get_id_proof_display()
+                data.pop('_state', None)
+                return JsonResponse(data)
+            except Customer.DoesNotExist as e:
+                return JsonResponse({'reason':str(e)})
+        return JsonResponse({'reason':'Query not provided'})    
         
-       
+@method_decorator(login_required, name='dispatch')
+class Change_RoomView(View):
+    def post(self, request):
+        booking = request.POST.get('booking', None)
+        room = request.POST.get("current_room", None)
+        changing_room = request.POST.get('change_room',None)
+        print(booking,room,changing_room)
+        if booking and room and changing_room:
+            try:
+                return self.changingroomstatus(booking, changing_room)
+            except Customer.DoesNotExist as e:
+                return JsonResponse({'status':'failed','reason':str(e)},status=404)
+        return JsonResponse({'status':'failed','reason':'Query not provided'},status=404)         
+    
+    def changingroomstatus(self, booking, changing_room):
+        booking =  Booking.objects.get(id=booking)
+        room= Room.objects.get(id=changing_room)
+        current_room =  booking.room
+        booking.room.save()
+        booking.room = room
+        booking.save()
+        current_room.room_status='1'
+        current_room.save()
+        room.room_status='2'
+        room.save()
+        return JsonResponse({'status': 'success'}, status=200)         
         
+class UpdateAllBookingCustomers(View):
+    def get(self, request, *args, **kwargs):
+        # Iterate over all bookings
+        for booking in Booking.objects.all():
+            # Check if customer exists or create a new one
+            customer, created = Customer.objects.update_or_create(
+                mobile=booking.mobile,
+                defaults={
+                    'customer_name': booking.customer_name,
+                    'address': booking.address,
+                    'country': booking.country,
+                    'id_proof': booking.id_proof,
+                    'id_no': booking.id_no,
+                }
+            )
 
+            # Update the booking to reference the correct customer
+            booking.customer = customer
+            booking.save()
+
+        return HttpResponse("All booking customers updated.")
+    
+class UpdatePaymentTransaction(View):
+    def get(self, request, *args, **kwargs):
+        # Iterate over all bookings
+        for payement in Payment.objects.filter(from_account=None):
+            # Check if customer exists or create a new one
+            if payement.narration=='Advance Payment':
+                account = Account.get_checkin_Account()
+            elif payement.narration == 'Additional Payment':
+                account =Account.get_advanceAccount()
+            elif payement.narration == 'Checkout Amount':
+                account = Account.get_checkoutaccount()
+
+            transaction, created = Transaction.objects.update_or_create(
+                transaction_type='credit',account=account,payment= payement,
+                defaults={
+                'date': payement.payment_date,
+                'amount': payement.amount,
+                'transaction_remark': payement.narration,
+                'description': payement.narration,
+                'booking': payement.booking or None,
+                }
+            )
+            payement.from_account=account
+            payement.save()
+            # Update the booking to reference the correct customer
+
+        return HttpResponse("All Transactions updated.")

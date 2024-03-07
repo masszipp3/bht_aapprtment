@@ -164,6 +164,7 @@ class Booking(models.Model):
     address = models.CharField(max_length=300,null=True)
     amount_due =  models.DecimalField(max_digits=10, decimal_places=3,default=0.000)
     country = models.CharField(max_length=200,null=True,blank=True)
+    customer = models.ForeignKey('Customer',on_delete=models.SET_NULL,null=True,blank=True)
     id_proof = models.CharField(max_length=10,null=True,blank=True,choices=id_proof_type)
     id_no = models.CharField(max_length=10,null=True,blank=True)
     # passport = models.CharField(max_length=40 ,null=True,blank=True)
@@ -246,6 +247,18 @@ class Cash_Payment(models.Model):
     description = models.CharField(max_length=500, null=True, blank=True)
     from_account = models.ForeignKey("Account", on_delete=models.CASCADE,null=True,blank=True,related_name='Cash_Payment_fromaccount')
     to_account = models.ForeignKey("Account", on_delete=models.CASCADE,null=True,blank=True,related_name='Cash_Payment_toaccount',default=1)
+
+class Customer(models.Model):
+    customer_name = models.CharField(max_length=100,null=True,blank=True)
+    mobile = models.CharField(max_length=20,unique=True,null=True)
+    address = models.CharField(max_length=300,null=True)
+    country = models.CharField(max_length=200,null=True,blank=True)
+    id_proof = models.CharField(max_length=10,null=True,blank=True,choices=id_proof_type)
+    id_no = models.CharField(max_length=10,null=True,blank=True)
+    # passport = models.CharField(max_length=40 ,null=True,blank=True)
+    created_at = models.DateTimeField(auto_now_add=True,null=True)
+    updated_at = models.DateTimeField(auto_now=True,null=True)
+    soft_delete = models.BooleanField(default=False)    
 
 class Journel(models.Model):
     booking = models.ForeignKey(Booking, on_delete=models.CASCADE,null=True,blank=True,related_name='Journal_booking')

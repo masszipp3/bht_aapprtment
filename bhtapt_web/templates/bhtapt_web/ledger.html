@@ -11,6 +11,12 @@
   .footer ,.back-to-top,.navbar,.items{
     display: none;
   }
+  table{
+    font-size: 9px;
+  }
+  h6{
+    font-size: 9px;
+  }
 }
 </style>
 
@@ -59,7 +65,9 @@
                 window.location.href = "{% url 'appartment:ledger' %}?account=" + accountId;
             }
         });
+       
     </script>
+
     
     {% if account %}
     <div class="bg-light text-center rounded p-4">
@@ -69,8 +77,27 @@
           <label for=""> END DATE</label>&nbsp;
             <input type="date" id="end_date" class="'class': 'form-control'," style="width: 100x;">
             <a id="filter_btn" data-url="{% url 'appartment:ledger' %}?account={{account.id}}" class="btn btn-primary ms-2">Filter</a>  <a href="{% url 'appartment:ledger' %}?account={{account.id}}&all" class="btn btn-danger ms-2">All</a>  <a  class="btn btn-warning ms-2" onclick="window.print()">Print</a> 
-
+            {% if filter and not show_balance %}  <a id="show_balance"  class="btn btn-dark ms-2">Hide Opening Balance</a> {% endif %}
+            {% if filter and show_balance %}  <a  id="hide_button" class="btn btn-info ms-2">Show Opening Balance</a> {% endif %}
     </div>
+
+    <script>
+         document.getElementById("show_balance").onclick = function() {
+        var currentUrl = window.location.href;
+        var newUrl = currentUrl.includes('?') 
+                 ? currentUrl + '&show_opening=true' 
+                 : currentUrl + '?show_opening=true';
+        window.location.href = newUrl;
+        };
+        
+    </script>
+    <script>
+        document.getElementById("hide_button").onclick = function() {
+        var url = new URL(window.location.href);
+        url.searchParams.delete('show_opening');
+        window.location.href = url.toString();
+        };
+    </script>
    
 
         <div class="table-responsive">
@@ -89,6 +116,7 @@
                         <th scope="col">Date</th>
                         <th scope="col">Particulars</th>
                         <th scope="col">Type</th>
+                        <th scope="col">Account</th>
                         <th scope="col">Debit</th>
                         <th scope="col">Credit</th>
                         <th scope="col">Balance</th>
@@ -98,6 +126,7 @@
                 <tbody class="text-center">
                     {% if filter %}
                     <tr>
+                        {% if not show_balance %}
                         <th colspan="5" class="text-danger">Opening Balance</th>
                         <!-- <td></td>
                         <td></td>
@@ -110,6 +139,8 @@
                         <td>{{positive_openingbalance}}</td>
                         {% else %} <td></td>{% endif%}
                         <td>{{opening_balance}}</td>
+                        {% endif %}
+
 
 
                     </tr>
@@ -122,6 +153,8 @@
                         <td>{{ transaction.date}}</td>
                         <td>{{ transaction.description}}</td>
                         <td>{{ transaction.type}}</td>
+
+                        <td>{{ transaction.account_transaction}}</td>
 
                         {% if transaction.debit != 0 %}
                         <td>{{ transaction.debit }}</td>
@@ -143,6 +176,8 @@
                         <td></td>
                         <td></td>
                         <td></td>
+                        <td></td>
+
                         <th>{{total_debits}}</th>
                         <th>{{total_credits}}</th>
                         <th>{{ending_balance}}</th>

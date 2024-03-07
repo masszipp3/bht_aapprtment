@@ -20,7 +20,7 @@
             <a href="{% url item.url %}" class="nav-item nav-link {% if current_url == item.url_name %}active{% endif %}">
                 <i class="fa {{ item.icon }} me-2"></i>{{ item.name }}
             </a>
-        {% endfor %}x
+        {% endfor %}
 
         <!-- <a href="chart.html" class="nav-item nav-link"><i class="fa fa-chart-bar me-2"></i>Cash Payments</a> -->
 
@@ -81,14 +81,16 @@
 <br>
 <div class="btn-group float-end me-5" >
     {% if page_obj.has_previous %}
-        <a class="" href="?page={{ page_obj.previous_page_number }}"><i class="fa fa-arrow-circle-left" style="font-size: 35px;"></i></a>
-    {% endif %}
+    <a class="" href="?page={{ page_obj.previous_page_number }}{% if query_params.room_id %}&room_id={{ query_params.room_id }}{% endif %}"><i class="fa fa-arrow-circle-left" style="font-size: 35px;"></i></a>
+{% endif %}
 
-    <!-- <span class="text-danger ms-2 me-2" style="font-size: 18px;"> {{ page_obj.number }}</span> -->
+<!-- <span class="text-danger ms-2 me-2" style="font-size: 18px;"> {{ page_obj.number }}</span> -->
 
-    {% if page_obj.has_next %}
-        <a class="" href="?page={{ page_obj.next_page_number }}"><i class="fa fa-arrow-circle-right" style="font-size: 35px;"></i></a>
-    {% endif %}
+{% if page_obj.has_next %}
+<a class="" href="?page={{ page_obj.next_page_number }}{% if query_params.room_id %}&room_id={{ query_params.room_id }}{% endif %}">
+    <i class="fa fa-arrow-circle-right" style="font-size: 35px;"></i>
+</a>
+{% endif %}
 </div>  <br>
 
 

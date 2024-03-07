@@ -74,13 +74,15 @@
 </div><br>
 <div class="btn-group float-end me-5" >
     {% if page_obj.has_previous %}
-        <a class="" href="?page={{ page_obj.previous_page_number }}"><i class="fa fa-arrow-circle-left" style="font-size: 35px;"></i></a>
+        <a class="" href="?page={{ page_obj.previous_page_number }}{% if query_params.room_id %}&room_id={{ query_params.room_id }}{% endif %}"><i class="fa fa-arrow-circle-left" style="font-size: 35px;"></i></a>
     {% endif %}
 
     <!-- <span class="text-danger ms-2 me-2" style="font-size: 18px;"> {{ page_obj.number }}</span> -->
 
     {% if page_obj.has_next %}
-        <a class="" href="?page={{ page_obj.next_page_number }}"><i class="fa fa-arrow-circle-right" style="font-size: 35px;"></i></a>
+    <a class="" href="?page={{ page_obj.next_page_number }}{% if query_params.room_id %}&room_id={{ query_params.room_id }}{% endif %}">
+        <i class="fa fa-arrow-circle-right" style="font-size: 35px;"></i>
+    </a>
     {% endif %}
 </div>  <br>
 

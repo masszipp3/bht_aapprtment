@@ -6,6 +6,8 @@ def menu_context(request):
             {'name': 'Bookings', 'url': 'appartment:bookingslist', 'icon': 'fa-chart-bar', 'url_name': 'bookingslist'},
             {'name': 'Cash Receipts', 'url': 'appartment:cashreciept_list', 'icon': 'fa-receipt', 'url_name': 'cashreciept_list'},
             {'name': 'Cash Payments', 'url': 'appartment:cash_payments', 'icon': 'fa-credit-card', 'url_name': 'cash_payments'},
+            {'name': 'Rooms', 'url': 'appartment:list_rooms', 'icon': 'fa-th', 'url_name': 'list_rooms'},
+
 
             
     ]
@@ -48,7 +50,6 @@ def menu_context(request):
 
     if request.user.is_superuser:
         menu_items.extend([
-            {'name': 'Rooms', 'url': 'appartment:list_rooms', 'icon': 'fa-th', 'url_name': 'list_rooms'},
             {'name': 'Floors', 'url': 'appartment:list_floors', 'icon': 'fa-keyboard', 'url_name': 'list_floors'},
             {'name': 'Categories', 'url': 'appartment:list_category', 'icon': 'fa-table', 'url_name': 'list_category'},
             {'name': 'Accounts', 'url': 'appartment:accounts_list', 'icon': 'fa-address-book', 'url_name': 'accounts_list'},

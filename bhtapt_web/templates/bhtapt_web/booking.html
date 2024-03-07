@@ -27,7 +27,7 @@
         <!-- <a href="chart.html" class="nav-item nav-link"><i class="fa fa-chart-bar me-2"></i>Cash Payments</a> -->
 
 
-    </div>
+    </div>  
 </nav>
 {% endblock %}
 
@@ -46,6 +46,14 @@
                     <label for="{{ form.room_number.id_for_label }}" class="form-label">Customer Name</label>
                     {{ form.customer_name }}
                 </div>
+
+                <div class="mb-3">
+                    <label for="{{ form.mobile.id_for_label }}" data-url="{% url 'appartment:customer' %}" class="form-label">Mobile Number</label>
+                    {{ form.mobile }}
+                </div>
+                {% if form.mobile.errors %}
+                <div class="alert alert-danger">{{ form.mobile.errors.as_text }}</div>
+                {% endif %}
                 {% if form.customer_name.errors %}
                 <div class="alert alert-danger">{{ form.customer_name.errors.as_text }}</div>
                 {% endif %}
@@ -108,13 +116,7 @@
                 <div class="alert alert-danger">{{ form.country.errors.as_text }}</div>
                 {% endif %}
 
-                <div class="mb-3">
-                    <label for="{{ form.mobile.id_for_label }}" class="form-label">Mobile Number</label>
-                    {{ form.mobile }}
-                </div>
-                {% if form.mobile.errors %}
-                <div class="alert alert-danger">{{ form.mobile.errors.as_text }}</div>
-                {% endif %}
+                
 
                 <div class="mb-3">
                     <label for="{{ form.address.id_for_label }}" class="form-label">Address</label>
@@ -164,10 +166,15 @@
                 <div class="alert alert-danger">{{ form.advance_payment.errors.as_text }}</div>
                 {% endif %}
                 <div class="mb-3">
-                    <button type="submit" class="btn btn-primary">{{action}}</button>
+                    <button type="submit" id="submitBtn" class="btn btn-primary">{{action}}</button>
                 </div>
             </form>
         </div>
     </div>
+    <script>
+        document.getElementById('booking_form').addEventListener('submit', function() {
+            document.getElementById('submitBtn').disabled = true;
+        });
+        </script>
 
 {% endblock %}

@@ -2,7 +2,7 @@
 
 from django.db.models.signals import post_save,pre_save,post_delete
 from django.dispatch import receiver
-from .models import Booking,Payment,Transaction,Account,Cash_Payment,Journel
+from .models import Booking,Payment,Transaction,Account,Cash_Payment,Journel,Customer
 from django.db.models import Sum
 
 
@@ -12,174 +12,140 @@ def create_initial_payment(sender, instance, created, **kwargs):
         instance.create_initial_payment()
         instance.amount_due = instance.total_amount - instance.advance_payment
         instance.save()
+        try:
+           customer = Customer.objects.get(mobile=instance.mobile)
+           customer.address = instance.address
+           customer.customer_name = instance.customer_name
+           customer.country = instance.country
+           customer.id_proof = instance.id_proof
+           customer.id_no = instance.id_no
+           customer.save()
+        except Customer.DoesNotExist:
+            Customer.objects.create(customer_name=instance.customer_name,mobile=instance.mobile,address=instance.address,
+                                    country=instance.country,id_proof=instance.id_proof,id_no=instance.id_no)   
+
         
 
 @receiver(post_save, sender=Payment)
 def create_transaction_for_payment(sender, instance, created, **kwargs):
-    if created:
-        # Check if this is an additional payment
-        if instance.booking:
-            if Payment.objects.filter(booking=instance.booking).count() > 1:
-                description = "Additional payment"
-            else:
-                description = "Advance Payment"
+    if not created:
+        transactions = Transaction.objects.filter(payment=instance)
+        for transaction in transactions:
+            transaction.amount = instance.amount
+            transaction.date = instance.payment_date or (instance.booking.check_in_date if instance.booking else None)
+            transaction.transaction_remark = instance.narration
+            transaction.save()
+        return
+    # Check if this is an additional payment
+    if instance.booking:
+        if Payment.objects.filter(booking=instance.booking).count() > 1:
+            description = "Additional payment"
         else:
-            description = instance.description  
+            description = "Advance Payment"
+    else:
+        description = instance.description  
 
-        if instance.to_account:    
+    if instance.to_account:    
         # Create a corresponding transaction
-            Transaction.objects.create(
-                account=instance.to_account ,
-                date=instance.payment_date or instance.booking.check_in_date,
-                transaction_type='debit',  #  'debit' as it's an increase in cash
-                amount=instance.amount,
-                transaction_remark = instance.narration,
-                description=f"{description} for booking {instance.booking.id}" if instance.booking else description,
-                booking=instance.booking or None,
-                payment=instance,
-            )
-            
+        Transaction.objects.create(
+            account=instance.to_account ,
+            date=instance.payment_date or instance.booking.check_in_date,
+            transaction_type='debit',  #  'debit' as it's an increase in cash
+            amount=instance.amount,
+            transaction_remark = instance.narration,
+            description=f"{description} for booking {instance.booking.id}" if instance.booking else description,
+            booking=instance.booking or None,
+            payment=instance,
+        )
 
-        if instance.from_account:
-            Transaction.objects.create(
-                account=instance.from_account ,
-                date=instance.payment_date or instance.booking.check_in_date,
-                transaction_type='credit' , #  'credit' as it's an decrease in cash
-                amount=instance.amount,
-                transaction_remark = instance.narration,
-                description=f"{description} for booking {instance.booking.id}" if instance.booking else description,
-                booking=instance.booking or None,
-                payment=instance,
-            )
+
+    if instance.from_account:
+        Transaction.objects.create(
+            account=instance.from_account ,
+            date=instance.payment_date or instance.booking.check_in_date,
+            transaction_type='credit' , #  'credit' as it's an decrease in cash
+            amount=instance.amount,
+            transaction_remark = instance.narration,
+            description=f"{description} for booking {instance.booking.id}" if instance.booking else description,
+            booking=instance.booking or None,
+            payment=instance,
+        )
 
 @receiver(post_save, sender=Cash_Payment)
 def create_transaction_for_cashpayment(sender, instance, created, **kwargs):
-    if created:
-        # Check if this is an additional payment
-        if instance.booking:
-            if Payment.objects.filter(booking=instance.booking).count() > 1:
-                description = "Additional payment"
-            else:
-                description = "Advance Payment"
+
+    def get_description():
+        if not instance.booking:
+            return instance.description
+
+    def create_or_update_transaction(account, transaction_type):
+        if not account:
+            return
+
+        date = instance.payment_date
+        description = get_description()
+
+        defaults = {
+            'account': account,
+            'date': date,
+            'transaction_type': transaction_type,
+            'amount': instance.amount,
+            'transaction_remark': instance.narration,
+            'description': description,
+            'booking': instance.booking or None,
+            'cash_payment': instance
+        }
+
+        if created:
+            Transaction.objects.create(**defaults)
         else:
-            description = instance.description  
-
-        if instance.to_account:    
-        # Create a corresponding transaction
-            Transaction.objects.create(
-                account=instance.to_account ,
-                date=instance.payment_date or instance.booking.check_in_date,
-                transaction_type='debit',  #  'debit' as it's an increase in cash
-                amount=instance.amount,
-                transaction_remark = instance.narration,
-                description=f"{description} for booking {instance.booking.id}" if instance.booking else description,
-                booking=instance.booking or None,
+            Transaction.objects.update_or_create(
+                account=account,
                 cash_payment=instance,
+                defaults=defaults
             )
-
-        if instance.from_account:
-            Transaction.objects.create(
-                account=instance.from_account ,
-                date=instance.payment_date or instance.booking.check_in_date,
-                transaction_type='credit' , #  'credit' as it's an deccrease in cash
-                amount=instance.amount,
-                transaction_remark = instance.narration,
-                description=f"{description} for booking {instance.booking.id}" if instance.booking else description,
-                booking=instance.booking or None,
-                cash_payment=instance,
-            )  
-    else:
-        if instance.to_account:    
-        # Create a corresponding transaction
-           if transaction := Transaction.objects.filter(
-                account=instance.to_account ,
-                cash_payment=instance
-            ).last():
-               transaction.account=instance.to_account
-               transaction.date=instance.payment_date
-               transaction.amount = instance.amount
-               transaction.transaction_remark = instance.narration
-               transaction.description = instance.description
-               transaction.booking=instance.booking or None
-               transaction.save()
-
-        if instance.from_account:    
-        # Create a corresponding transaction
-           if transaction := Transaction.objects.filter(
-                account=instance.from_account ,
-                cash_payment=instance
-            ).last():
-               transaction.account=instance.from_account
-               transaction.date=instance.payment_date
-               transaction.amount = instance.amount
-               transaction.transaction_remark = instance.narration
-               transaction.description = instance.description
-               transaction.booking=instance.booking or None
-               transaction.save()   
+    create_or_update_transaction(instance.to_account, 'debit')
+    create_or_update_transaction(instance.from_account, 'credit') 
 
 @receiver(post_save, sender=Journel)
 def create_transaction_for_journal(sender, instance, created, **kwargs):
-    if created:
-        # Check if this is an additional payment
-        if instance.booking:
-            if Payment.objects.filter(booking=instance.booking).count() > 1:
-                description = "Additional payment"
-            else:
-                description = "Advance Payment"
-        else:
-            description = instance.description  
 
-        if instance.to_account:    
-        # Create a corresponding transaction
-            Transaction.objects.create(
-                account=instance.to_account ,
-                date=instance.payment_date or instance.booking.check_in_date,
-                transaction_type='debit',  #  'debit' as it's an increase in cash
-                amount=instance.amount,
-                transaction_remark = instance.narration,
-                description=f"{description} for booking {instance.booking.id}" if instance.booking else description,
-                booking=instance.booking or None,
+    def get_description():
+        if not instance.booking:
+            return instance.description
+
+    def create_or_update_transaction(account, transaction_type):
+        if not account:
+            return
+
+        transaction_date = instance.payment_date or (instance.booking.check_in_date if instance.booking else None)
+        description_text = get_description()
+        description = f"{description_text} for booking {instance.booking.id}" if instance.booking else description_text
+
+        defaults = {
+            'account': account,
+            'date': transaction_date,
+            'transaction_type': transaction_type,
+            'amount': instance.amount,
+            'transaction_remark': instance.narration,
+            'description': description,
+            'booking': instance.booking,
+            'journal': instance
+        }
+
+        if created:
+            Transaction.objects.create(**defaults)
+        else:
+            Transaction.objects.update_or_create(
+                account=account,
                 journal=instance,
+                defaults=defaults
             )
 
-        if instance.from_account:
-            Transaction.objects.create(
-                account=instance.from_account ,
-                date=instance.payment_date or instance.booking.check_in_date,
-                transaction_type='credit' , #  'credit' as it's an deccrease in cash
-                amount=instance.amount,
-                transaction_remark = instance.narration,
-                description=f"{description} for booking {instance.booking.id}" if instance.booking else description,
-                booking=instance.booking or None,
-                journal=instance,
-            )  
-    else:
-        if instance.to_account:    
-        # Create a corresponding transaction
-           if transaction := Transaction.objects.filter(
-                account=instance.to_account ,
-                journal=instance
-            ).last():
-               transaction.account=instance.to_account
-               transaction.date=instance.payment_date
-               transaction.amount = instance.amount
-               transaction.transaction_remark = instance.narration
-               transaction.description = instance.description
-               transaction.booking=instance.booking or None
-               transaction.save()
-        if instance.from_account:    
-        # Create a corresponding transaction
-           if transaction := Transaction.objects.filter(
-                account=instance.from_account ,
-                journal=instance
-            ).last():
-               transaction.account=instance.from_account
-               transaction.date=instance.payment_date
-               transaction.amount = instance.amount
-               transaction.transaction_remark = instance.narration
-               transaction.description = instance.description
-               transaction.booking=instance.booking or None
-               transaction.save()              
+    # Handle transactions for to_account and from_account
+    create_or_update_transaction(instance.to_account, 'debit')
+    create_or_update_transaction(instance.from_account, 'credit')
+            
 
 @receiver(post_delete, sender=Booking)
 def update_balance_on_transaction_pre_save(sender, instance, **kwargs):

@@ -89,7 +89,9 @@
     <div class="bg-light text-center rounded p-4">
         <div class="d-flex align-items-center justify-content-between mb-4">
             <h6 class="mb-0">Rooms</h6>
+            {% if user.is_superuser %}
             <a class="btn btn-sm btn-success p-2" href="{% url 'appartment:add_room' %}">Add Room</a>
+            {% endif %}
         </div>
         <div class="table-responsive">
             <table class="table text-start align-middle table-bordered table-hover mb-0" style="text-align: center;">
@@ -103,7 +105,9 @@
                         <th scope="col">Daily</th>
                         <th scope="col">Monthly</th>
                         <th scope="col">Yearly</th>
+                        {% if user.is_superuser %}
                         <th scope="col">Action</th>
+                        {% endif %}
                     </tr>
                 </thead>
                 <tbody class="text-center">
@@ -125,10 +129,11 @@
 
                         <!-- <td>Jhon Doe</td> -->
                         <!-- <td><img src="{{ catagory.category_image.url }}" height="100px" width="100px" alt="" srcset=""></td> -->
-                        
+                        {% if user.is_superuser %}
                         <td><a class="btn btn-sm btn-primary" href="{% url 'appartment:edit_room' room.id %}">Edit</a>
                             <a class="btn btn-sm btn-danger" onclick="return confirm('Are you Sure..?')" href="{% url 'appartment:delete_room' room.id %}">Delete</a>
                         </td>
+                        {% endif %}
                     </tr>
                     {% endfor %}
                 </tbody>
