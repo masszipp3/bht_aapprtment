@@ -30,7 +30,9 @@ payment_status=(('1','Paid'),
 
 id_proof_type=(('1','Driving Licence'),
            ('2','Passport'),
-           ('3','PAN Card'))
+           ('3','PAN Card'),
+           ('4','Adhaar Card'),
+           ('5','Voter ID Card'))
 
 
 class User(AbstractUser):
@@ -114,6 +116,7 @@ class Account(models.Model):
     ACCOUNT_TYPES = (
         ('cash', 'Cash'),
         ('bank', 'Bank'),
+        ('tax', 'Tax'),
         ('other', 'Other'),
 
         # Add other account types as needed
@@ -147,7 +150,21 @@ class Account(models.Model):
     @staticmethod
     def get_advanceAccount():
         return Account.objects.get_or_create(name="CheckIN Avdance Account", account_type="cash")[0]
+    
+    @staticmethod
+    def get_bankAccount():
+        return Account.objects.get_or_create(name="Bank Account", account_type="bank")[0]
+    
+    @staticmethod
+    def get_TaxAccount():
+        return Account.objects.get_or_create(name="Tax Account", account_type="tax")[0]
+    
 class Booking(models.Model):
+
+    PaymentTypeChoices=(
+        ("1","Cash"),
+        ("2","Online"),
+    )
     customer_name = models.CharField(max_length=100,null=True,blank=True)
     booking_no = models.CharField(max_length=100,null=True,blank=True)
     room = models.ForeignKey(Room, on_delete=models.CASCADE)
@@ -167,6 +184,8 @@ class Booking(models.Model):
     customer = models.ForeignKey('Customer',on_delete=models.SET_NULL,null=True,blank=True)
     id_proof = models.CharField(max_length=10,null=True,blank=True,choices=id_proof_type)
     id_no = models.CharField(max_length=10,null=True,blank=True)
+    payment_type = models.CharField(max_length=10,null=True,blank=True,choices=PaymentTypeChoices)
+    id_image = models.ImageField(upload_to='id_images',null=True,blank=True)
     # passport = models.CharField(max_length=40 ,null=True,blank=True)
     status = models.CharField(max_length=50,null=True,blank=True,default='2',choices=booking_status)    
     discount = models.DecimalField(max_digits=10, decimal_places=3,default=0.000)

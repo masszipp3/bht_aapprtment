@@ -4,7 +4,7 @@
 
 <nav class="navbar bg-light navbar-light">
     <a href="{% url 'appartment:dashboard' %}" class="navbar-brand mx-4 mb-3">
-        <h3 class="text-primary"><i class="fa fa-hashtag me-2"></i>Bin Hariz</h3>
+        <h3 class="text-primary"><i class="fa fa-hashtag me-2"></i>OMKAAR </h3>
     </a>
     <div class="d-flex align-items-center ms-4 mb-4">
         <div class="position-relative">
@@ -134,7 +134,13 @@
                 {% if form.id_proof.errors %}
                 <div class="alert alert-danger">{{ form.id_proof.errors.as_text }}</div>
                 {% endif %}
-
+                <div class="mb-3">
+                    <label for="{{ form.id_proof.id_for_label }}" class="form-label">ID Image</label>
+                    {{ form.id_image }}
+                </div>
+                {% if form.id_image.errors %}
+                <div class="alert alert-danger">{{ form.id_image.errors.as_text }}</div>
+                {% endif %}
                 <div class="mb-3">
                     <label for="{{ form.id_no.id_for_label }}" class="form-label">ID No</label>
                     {{ form.id_no }}
