@@ -1,5 +1,6 @@
 # signals.py
 
+from decimal import Decimal
 from django.db.models.signals import post_save,pre_save,post_delete
 from django.dispatch import receiver
 from .models import Booking,Payment,Transaction,Account,Cash_Payment,Journel,Customer
@@ -28,49 +29,46 @@ def create_initial_payment(sender, instance, created, **kwargs):
 
 @receiver(post_save, sender=Payment)
 def create_transaction_for_payment(sender, instance, created, **kwargs):
-    if not created:
-        transactions = Transaction.objects.filter(payment=instance)
-        for transaction in transactions:
-            transaction.amount = instance.amount
-            transaction.date = instance.payment_date or (instance.booking.check_in_date if instance.booking else None)
-            transaction.transaction_remark = instance.narration
-            transaction.save()
-        return
-    # Check if this is an additional payment
-    if instance.booking:
-        if Payment.objects.filter(booking=instance.booking).count() > 1:
-            description = "Additional payment"
-        else:
-            description = "Advance Payment"
+    def update_or_create_transaction(account, transaction_type,description=None, narration=None,amount=None):
+        transaction_date = instance.payment_date or (instance.booking.check_in_date if instance.booking else None)
+        descriptions = description or get_payment_description(instance) 
+        Transaction.objects.create(
+            account=account,
+            **{
+                'date': transaction_date,
+                'transaction_type': transaction_type,
+                'amount': amount or instance.amount,
+                'transaction_remark': narration or instance.narration,
+                'description': descriptions,
+                'booking': instance.booking,
+                'payment': instance
+            }
+        )
+
+    def get_payment_description(payment):
+        if payment.booking and Payment.objects.filter(booking=payment.booking).count() > 1:
+            return payment.description
+        return "Advance Payment" if payment.booking else payment.description
+
+    if created:
+        if instance.to_account:
+            update_or_create_transaction(instance.to_account, 'debit')
+        if instance.from_account:
+            update_or_create_transaction(instance.from_account, 'credit')
+        amount =  Decimal(instance.amount) * Decimal(0.09)
+        sgst_description = f"SGST for {instance.narration}"
+        csgt_description = f"CGST for {instance.narration}"
+
+        update_or_create_transaction(Account.get_cgst(),'credit',amount=amount,narration=csgt_description)    
+        update_or_create_transaction(Account.get_sgst(),'credit',amount=amount,narration=sgst_description)    
     else:
-        description = instance.description  
-
-    if instance.to_account:    
-        # Create a corresponding transaction
-        Transaction.objects.create(
-            account=instance.to_account ,
-            date=instance.payment_date or instance.booking.check_in_date,
-            transaction_type='debit',  #  'debit' as it's an increase in cash
-            amount=instance.amount,
-            transaction_remark = instance.narration,
-            description=f"{description} for booking {instance.booking.id}" if instance.booking else description,
-            booking=instance.booking or None,
-            payment=instance,
-        )
-
-
-    if instance.from_account:
-        Transaction.objects.create(
-            account=instance.from_account ,
-            date=instance.payment_date or instance.booking.check_in_date,
-            transaction_type='credit' , #  'credit' as it's an decrease in cash
-            amount=instance.amount,
-            transaction_remark = instance.narration,
-            description=f"{description} for booking {instance.booking.id}" if instance.booking else description,
-            booking=instance.booking or None,
-            payment=instance,
-        )
-
+        if instance.to_account or instance.from_account:
+            transactions = Transaction.objects.filter(payment=instance)
+            for transaction in transactions:
+                transaction.amount = instance.amount
+                transaction.date = instance.payment_date or (instance.booking.check_in_date if instance.booking else None)
+                transaction.transaction_remark = instance.narration
+                transaction.save()
 @receiver(post_save, sender=Cash_Payment)
 def create_transaction_for_cashpayment(sender, instance, created, **kwargs):
 
@@ -99,10 +97,10 @@ def create_transaction_for_cashpayment(sender, instance, created, **kwargs):
         if created:
             Transaction.objects.create(**defaults)
         else:
-            Transaction.objects.update_or_create(
+            Transaction.objects.filter(cash_payment=instance,transaction_type= transaction_type).update(
                 account=account,
-                cash_payment=instance,
-                defaults=defaults
+                amount=instance.amount,
+                transaction_remark=instance.narration
             )
     create_or_update_transaction(instance.to_account, 'debit')
     create_or_update_transaction(instance.from_account, 'credit') 
@@ -136,10 +134,10 @@ def create_transaction_for_journal(sender, instance, created, **kwargs):
         if created:
             Transaction.objects.create(**defaults)
         else:
-            Transaction.objects.update_or_create(
-                account=account,
-                journal=instance,
-                defaults=defaults
+            Transaction.objects.filter(journal=instance,transaction_type= transaction_type).update(
+                 account=account,
+                amount=instance.amount,
+                transaction_remark=instance.narration
             )
 
     # Handle transactions for to_account and from_account

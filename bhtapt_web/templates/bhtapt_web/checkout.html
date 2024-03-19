@@ -328,6 +328,16 @@
                     <input type="number" required name="discount" value="{{booking.discount}}" class="form-control"
                         id="id_discounts">
                 </div>
+                <div class="mb-3 col-3">
+                    <label for="exampleInputPassword1" class="form-label">Payment Method</label>
+                        <select class="form-select mb-3" aria-label="Default select example" name="payment_method" required>
+                            <option value="" selected>Select</option>
+                            <option value="1">Cash</option>
+                            <option value="2">Online</option>
+
+                          
+                        </select>
+                </div>
 
                 <div class="mb-3 col-12" style="display: flex; justify-content:center;">
                     <button type="submit" class="btn btn-primary p-3 mt-4 me-5">Complete Checkout </button>
@@ -351,6 +361,16 @@
                             <tr>
                                 <td >Amount</td>
                                 <td id="id_total_amount"></td>
+                            </tr>
+                            <tr>
+                                <td >Tax - 18%</td>
+                                <td> <table style="font-size: 10px; color: white;" class="table-bordered table">
+                                    <tr><td>CGST 9%</td><td id="cgst"></td></tr>
+                                    <tr><td>SGST 9%</td><td id="sgst"></td></tr>
+                                    <tr><td>Total</td><td id="totaltaxt"></td></tr>
+
+                                </table></td>
+                               
                             </tr>
                             <tr>
                                 <td>Discount</td>

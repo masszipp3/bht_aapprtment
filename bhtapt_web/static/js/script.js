@@ -187,15 +187,22 @@ function calculateTotal(){
 }
 
 function calculation_Summary(){
-    var amount = calculate_total($('#id_rates').val(),$('#id_durations').val())
+    var amount = calculate_total($('#id_rates').val(),$('#id_durations').val()) 
+    var tax =  (amount*18)/100
+    var amount = amount - tax
     var discount = parseFloat($('#id_discounts').val()) 
-    var total =  amount-discount
+    var total =  amount+tax - discount
     var advance = parseFloat($('#advance').text())
     var net_total = total-advance
     $('#totalinput').val(total)
     $('#id_checkout_anount').val(net_total)
-    $('#id_total_amount').text(calculate_total($('#id_rates').val(),$('#id_durations').val()))
+    $('#id_total_amount').text(amount)
+    $('#sgst').text((tax/2).toFixed(2))
+    $('#cgst').text((tax/2).toFixed(2))
+    $('#totaltaxt').text(tax.toFixed(2))
+
     $('#total').text(total.toFixed(2))
+
     $('#net_total').text(net_total.toFixed(2))
 }
 

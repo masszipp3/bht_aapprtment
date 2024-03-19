@@ -156,8 +156,12 @@ class Account(models.Model):
         return Account.objects.get_or_create(name="Bank Account", account_type="bank")[0]
     
     @staticmethod
-    def get_TaxAccount():
-        return Account.objects.get_or_create(name="Tax Account", account_type="tax")[0]
+    def get_cgst():
+        return Account.objects.get_or_create(name="CGST 9%", account_type="tax")[0]
+    
+    @staticmethod
+    def get_sgst():
+        return Account.objects.get_or_create(name="SGST 9%", account_type="tax")[0]
     
 class Booking(models.Model):
 
@@ -203,14 +207,18 @@ class Booking(models.Model):
     def create_initial_payment(self):
         if self.advance_payment and self.advance_payment > 0:
         # Create an initial payment
-            
+            if self.payment_type == '2':
+                account = Account.get_bankAccount()
+            else:
+                account = Account.get_cash_account()    
             payment = Payment.objects.create(
                 booking=self,
                 amount=self.advance_payment, 
-                payment_status='1',  #  '1' represents a status paid
+                payment_status='1',  # '1' represents a status paid
                 narration='Advance Payment',
+                payment_type=self.payment_type,
                 payment_date = self.check_in_date,
-                to_account = Account.get_cash_account(),
+                to_account = account,
                 from_account = Account.get_checkin_Account(),
                 room = self.room  if self.room else None
             )
@@ -246,10 +254,16 @@ class Booking(models.Model):
         return outstanding_amount-total_amount if total_amount else outstanding_amount
 
 class Payment(models.Model): #cashreciept
+
+    PaymentTypeChoices=(
+        ("1","Cash"),
+        ("2","Online"),
+    )
     booking = models.ForeignKey(Booking, on_delete=models.CASCADE,null=True,blank=True,related_name='payment_booking')
     room = models.ForeignKey(Room, on_delete=models.SET_NULL,null=True,blank=True,related_name='payment_room')
     amount = models.DecimalField(max_digits=10, decimal_places=3)
     payment_date = models.DateField(null=True,blank=True)
+    payment_type = models.CharField(max_length=10,null=True,blank=True,choices=PaymentTypeChoices,default='1')
     payment_status = models.CharField(max_length=50,choices=payment_status)
     narration = models.CharField(max_length=200, null=True, blank=True)
     description = models.CharField(max_length=500, null=True, blank=True)

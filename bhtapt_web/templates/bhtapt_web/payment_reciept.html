@@ -203,6 +203,8 @@
             <thead>
               <tr>
                 <td class="text-center col-xs-1">Sub Total</td>
+                <td class="text-center col-xs-1">CGST(9%)</td>
+                <td class="text-center col-xs-1">SGST(9%)</td>
                 <td class="text-center col-xs-1">Discount</td>
                 <td class="text-center col-xs-1">Total</td>
                 <!-- <td class="text-center col-xs-1">Advance</td> -->
@@ -211,7 +213,10 @@
             </thead>
             <tbody>
               <tr>
-                <th class="text-center rowtotal mono">{{payment.booking.duration|mul:payment.booking.rate}}</th>
+                <th class="text-center rowtotal mono">{{wotax}}</th>
+                <th class="text-center rowtotal mono">{{tax}}</th>
+                <th class="text-center rowtotal mono">{{tax}}</th>
+
                 <th class="text-center rowtotal mono">- {{payment.booking.discount}}</th>
                 <th class="text-center rowtotal mono">{{payment.booking.total_amount}}</th>
                 <!-- <th class="text-center rowtotal mono">{{advance}}</th> -->
@@ -266,7 +271,9 @@
           <table class="table table-bordered table-condensed">
             <thead>
               <tr>
-                <td class="text-center col-xs-1">Sub Total</td>
+                <td class="text-center col-xs-1">Amount</td>
+                <td class="text-center col-xs-1">CGST(9%)</td>
+                <td class="text-center col-xs-1">SGST(9%)</td>
                 <td class="text-center col-xs-1">Discount</td>
                 <td class="text-center col-xs-1">Total</td>
                 <td class="text-center col-xs-1">Advance</td>
@@ -275,7 +282,10 @@
             </thead>
             <tbody>
               <tr>
-                <th class="text-center rowtotal mono">{{payment.booking.duration|mul:payment.booking.rate}}</th>
+                <th class="text-center rowtotal mono">{{wotax}}</th>
+                <th class="text-center rowtotal mono">{{tax}}</th>
+                <th class="text-center rowtotal mono">{{tax}}</th>
+
                 <th class="text-center rowtotal mono">- {{payment.booking.discount}}</th>
                 <th class="text-center rowtotal mono">{{payment.booking.total_amount}}</th>
                 <th class="text-center rowtotal mono">{{advance}}</th>
@@ -302,7 +312,7 @@
                 <h3 class="panel-title">Payment Method</h3>
               </div>
               <div class="panel-body" style="height: 90px !important;">
-                <h6 style="text-align: center; font-size: medium; font-weight: 900;">CASH</h6>
+                <h6 style="text-align: center; font-size: medium; font-weight: 900;"> {{payment.get_payment_type_display}}</h6>
               </div>
             </div>
           </div>
@@ -311,7 +321,7 @@
                  height: 1px;
                  border: 2;">
 
-            <p> For Binharis</p> 
+            <p> For Omkaar</p> 
              </div>
              <div class="col-xs-6" >
               <div class="div" style="text-align: right;

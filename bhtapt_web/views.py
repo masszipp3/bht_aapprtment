@@ -280,7 +280,14 @@ class advance_payment(View):
 
     def post(self,request,room_id):
         advance_amount = request.POST.get('additional_amount',None)
+        payment_method = request.POST.get('payment_method',None)
+        
         booking = Booking.objects.filter(room_id=room_id,status='2').last()
+        
+        if payment_method == '2':
+            account = Account.get_bankAccount()
+        else:
+            account = Account.get_cash_account()  
         if advance_payment is not None:
             payment = Payment.objects.create(
                 booking=booking,
@@ -288,8 +295,10 @@ class advance_payment(View):
                 payment_status='1',  #  '1' represents a status paid
                 narration='Additional Payment',
                 payment_date = date.today(),
+                description = 'Additional Payment',
                 from_account = Account.get_advanceAccount(),
-                to_account = Account.get_cash_account(),
+                payment_type=payment_method,
+                to_account =account,
                 room = booking.room  if booking.room else None
             )
             booking.amount_due -= Decimal(advance_amount)
@@ -312,9 +321,17 @@ class checkoutView(View):
 
     def post(self,request,room_id):
         instance = Booking.objects.filter(room_id=room_id,status='2').last()
+        if not instance :
+            return redirect('appartment:dashboard')
+         
         total_amount = Payment.objects.filter(booking=instance).aggregate(total=Sum('amount'))['total']
         bill_no = Payment.objects.count() + 1
         checkout_amount= request.POST.get('checkout_anount',None)
+        payment_method= request.POST.get('payment_method',None)
+        if payment_method == '2':
+            account = Account.get_bankAccount()
+        else:
+            account = Account.get_cash_account() 
         print(checkout_amount)
         if checkout_amount :
                 instance.check_out_date = request.POST.get('check_out_date')
@@ -333,7 +350,9 @@ class checkoutView(View):
                 payment_status='1',  #  '1' represents a status paid
                 narration='Checkout Amount',
                 from_account = Account.get_checkoutaccount(),
-                to_account = Account.get_cash_account(),
+                description = 'checkout amount',
+                to_account = account,
+                payment_type=payment_method,
                 payment_date = date.today())
                 return redirect('appartment:reciept_print', payment_id=payment.id)
         else:
@@ -467,16 +486,21 @@ class reciept_print(View):
         if booking_id is not None:
             booking=Booking.objects.get(id=booking_id)
             total_advance = Payment.objects.filter(booking=booking,narration__in=['Advance Payment','Additional Payment']).aggregate(total=Sum('amount'))['total']
-            total_amountpaid = Payment.objects.filter(booking=booking).aggregate(total=Sum('amount'))['total'] 
+            total_amountpaid = Payment.objects.filter(booking=booking).aggregate(total=Sum('amount'))['total']
+            tax = Decimal(booking.total_amount)*Decimal(0.09)
+            wotex = booking.total_amount - tax
             if total_amountpaid is None:
                 total_amountpaid=0
             if total_advance is None:
                 total_advance=0
-            return render(request, 'bhtapt_web/guestreciept.html',{'booking':booking,'amount_paid':total_amountpaid,'advance':total_advance})     
+            return render(request, 'bhtapt_web/guestreciept.html',{'booking':booking,'amount_paid':total_amountpaid,'advance':total_advance,'wotax':wotex,'tax':round(tax/2,2)})     
         total_advance = Payment.objects.filter(booking=payment.booking,narration__in=['Advance Payment','Additional Payment']).aggregate(total=Sum('amount'))['total']
         if total_advance is None:
             total_advance=0
-        return render(request, self.template_name,{'payment':payment,'advance':total_advance}) 
+        payment = Payment.objects.get(id=payment_id)   
+        tax = Decimal(payment.booking.total_amount)*Decimal(0.18) 
+        wotex = round(payment.booking.total_amount - tax,2)
+        return render(request, self.template_name,{'payment':payment,'advance':total_advance,'wotax':wotex,'tax':round(tax/2,2)}) 
 
 @method_decorator(login_required, name='dispatch')  
 class recieptcashpayment(View):
