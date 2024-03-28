@@ -42,7 +42,7 @@
 
 
                 
-                <form method="post">
+                <form method="post" id="add_form">
                     {% csrf_token %}
                     <div class="mb-3">
                         <label for="exampleInputEmail1" class="form-label">Customer Name</label>
@@ -73,7 +73,11 @@
         </div>
     
    
-
+        <script>
+            document.getElementById('add_form').addEventListener('submit', function() {
+                document.getElementById('submitBtn').disabled = true;
+            });
+            </script>
 
 
         {% endblock %}

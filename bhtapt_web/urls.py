@@ -124,6 +124,10 @@ urlpatterns=[
     path('changeroom',Change_RoomView.as_view(),name='changeroom'),    
     path('update/customers',UpdateAllBookingCustomers.as_view(),name='update_customers'),
     path('update/payments',UpdatePaymentTransaction.as_view(),name='update_transaction'),
+    path('update/cashpayment',verify_and_update_transactions,name='_transaction'),
+    path('update/journals',verify_and_update_journaltransactions,name='j_transaction'),
+
+
 
 
 

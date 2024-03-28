@@ -99,10 +99,10 @@ def create_transaction_for_cashpayment(sender, instance, created, **kwargs):
         if created:
             Transaction.objects.create(**defaults)
         else:
-            Transaction.objects.update_or_create(
+            Transaction.objects.filter(cash_payment=instance,transaction_type= transaction_type).update(
                 account=account,
-                cash_payment=instance,
-                defaults=defaults
+                amount=instance.amount,
+                transaction_remark=instance.narration
             )
     create_or_update_transaction(instance.to_account, 'debit')
     create_or_update_transaction(instance.from_account, 'credit') 
@@ -136,15 +136,17 @@ def create_transaction_for_journal(sender, instance, created, **kwargs):
         if created:
             Transaction.objects.create(**defaults)
         else:
-            Transaction.objects.update_or_create(
-                account=account,
-                journal=instance,
-                defaults=defaults
+            Transaction.objects.filter(journal=instance,transaction_type= transaction_type).update(
+                 account=account,
+                amount=instance.amount,
+                transaction_remark=instance.narration
             )
 
     # Handle transactions for to_account and from_account
     create_or_update_transaction(instance.to_account, 'debit')
     create_or_update_transaction(instance.from_account, 'credit')
+            
+    
             
 
 @receiver(post_delete, sender=Booking)
@@ -157,3 +159,5 @@ def update_balance_on_transaction_pre_save(sender, instance, **kwargs):
             total_debits = Transaction.objects.filter(account=account, transaction_type='debit').aggregate(Sum('amount'))['amount__sum'] or 0
             account.balance =  total_debits - total_credits
             account.save()
+
+            

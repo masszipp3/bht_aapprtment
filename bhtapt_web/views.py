@@ -190,6 +190,9 @@ class RoomDeleteView(View):
 # @method_decorator(user_passes_test(user_is_superuser), name='dispatch')
 class list_rooms(View):
     def get(self, request):
+        # print(Transaction.objects.filter(transaction_type='credit').exclude(cash_payment=None).count())
+        # print(Transaction.objects.filter(transaction_type='credit').exclude(journal=None).count())
+
         category_room_counts = Room.objects.values('category__category_name').annotate(
             total_rooms=Count('id'),
             vacant_rooms=Count('id', filter=Q(room_status='1')),
@@ -348,12 +351,11 @@ class checkoutView(View):
 class bookingsList(View):
     template_name = 'bhtapt_web/booking_list.html'
     def get(self, request):
-        room_id = request.GET.get('room_id',None)
-        if room_id:
-            booking_list = Booking.objects.filter(room_id=room_id,soft_delete=False).order_by('-id') 
-        else:    
-            booking_list = Booking.objects.filter(soft_delete=False).order_by('-id') 
-        paginator = Paginator(booking_list, 10) 
+        if room_id := request.GET.get('room_id', None):
+            booking_list = Booking.objects.filter(room_id=room_id,soft_delete=False).order_by('-id')
+        else:
+            booking_list = Booking.objects.filter(soft_delete=False).order_by('-id')
+        paginator = Paginator(booking_list, 10)
         page_number = request.GET.get('page')  # Get the page number from the query string
         page_obj = paginator.get_page(page_number)  # Get the page object
         return render(request, self.template_name, {'page_obj': page_obj,'query_params': request.GET})          
@@ -1276,3 +1278,78 @@ class UpdatePaymentTransaction(View):
             # Update the booking to reference the correct customer
 
         return HttpResponse("All Transactions updated.")
+
+
+def verify_and_update_journaltransactions(request):
+    journals = Journel.objects.all()
+
+    for journal in journals:
+        # Retrieve the required transactions
+        credit_transaction = Transaction.objects.filter(journal=journal, transaction_type='credit', account=journal.from_account)
+        debit_transaction = Transaction.objects.filter(journal=journal, transaction_type='debit', account=journal.to_account)
+
+        # Create missing transactions
+        if not credit_transaction.exists():
+            create_transaction(journal.from_account, 'credit', journal)
+        if not debit_transaction.exists():
+            create_transaction(journal.to_account, 'debit', journal)
+
+        # Delete invalid transactions
+        invalid_transactions = Transaction.objects.filter(journal=journal).exclude(
+            id__in=[credit_transaction.first().id, debit_transaction.first().id]
+        )
+        invalid_transactions.delete()
+
+    return JsonResponse({'sucess':'Success'})  # Replace with your template
+
+def create_transaction(account, transaction_type, journal):
+    if not account:
+        return
+
+    Transaction.objects.create(
+        account=account,
+        date=journal.payment_date,
+        transaction_type=transaction_type,
+        amount=journal.amount,
+        transaction_remark=journal.narration,
+        description=journal.description or '',
+        booking=journal.booking,
+        journal=journal
+    )  
+
+def verify_and_update_transactions(request):
+    cash_payments = Cash_Payment.objects.all()
+
+    for cash_payment in cash_payments:
+        # Retrieve the required transactions
+        credit_transaction = Transaction.objects.filter(cash_payment=cash_payment, transaction_type='credit', account=cash_payment.from_account)
+        debit_transaction = Transaction.objects.filter(cash_payment=cash_payment, transaction_type='debit', account=cash_payment.to_account)
+
+        # Create missing transactions
+        if not credit_transaction.exists():
+            create_transaction(cash_payment.from_account, 'credit', cash_payment)
+        if not debit_transaction.exists():
+            create_transaction(cash_payment.to_account, 'debit', cash_payment)
+
+        # Delete invalid transactions
+        invalid_transactions = Transaction.objects.filter(cash_payment=cash_payment).exclude(
+            id__in=[credit_transaction.first().id, debit_transaction.first().id]
+        )
+        invalid_transactions.delete()
+
+    return JsonResponse({'sucess':'Success'})  # Replace with your template
+
+def create_transaction(account, transaction_type, cash_payment):
+    if not account:
+        return
+
+    Transaction.objects.create(
+        account=account,
+        date=cash_payment.payment_date,
+        transaction_type=transaction_type,
+        amount=cash_payment.amount,
+        transaction_remark=cash_payment.narration,
+        description=cash_payment.description or '',
+        booking=cash_payment.booking,
+        cash_payment=cash_payment
+    )    

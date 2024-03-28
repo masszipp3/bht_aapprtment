@@ -250,7 +250,7 @@ class Cash_Payment(models.Model):
 
 class Customer(models.Model):
     customer_name = models.CharField(max_length=100,null=True,blank=True)
-    mobile = models.CharField(max_length=20,unique=True,null=True)
+    mobile = models.CharField(max_length=20,unique=False,null=True)
     address = models.CharField(max_length=300,null=True)
     country = models.CharField(max_length=200,null=True,blank=True)
     id_proof = models.CharField(max_length=10,null=True,blank=True,choices=id_proof_type)

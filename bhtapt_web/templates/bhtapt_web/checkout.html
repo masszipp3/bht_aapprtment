@@ -270,7 +270,7 @@
             <span class="desc">Download Lorem mobile banking app for IOS &amp; Android to manage your online money.</span> -->
             </div>
         </div>
-        <form method="post">
+        <form method="post" id="checkout_form">
             <div class="row">
 
                 {% csrf_token %}
@@ -379,6 +379,10 @@
 
     </div>
 
-
+    <script>
+        document.getElementById('checkout_form').addEventListener('submit', function() {
+            document.getElementById('submitBtn').disabled = true;
+        });
+        </script>
 
     {% endblock %}

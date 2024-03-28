@@ -91,6 +91,10 @@
         </div>
     </div>
 
-
+    <script>
+        document.getElementById('floor_form').addEventListener('submit', function() {
+            document.getElementById('submitBtn').disabled = true;
+        });
+        </script>
 
     {% endblock %}
